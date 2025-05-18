@@ -5,8 +5,6 @@ all: build test
 
 build:
 	@echo "Building..."
-	
-	
 	@go build -o main cmd/api/main.go
 
 # Run the application
@@ -29,6 +27,21 @@ docker-down:
 		echo "Falling back to Docker Compose V1"; \
 		docker-compose down; \
 	fi
+
+tidy:
+	@echo "Tidying module dependencies..."
+	@go mod tidy
+	@echo "Formatting code..."
+	@go fmt ./...
+
+audit:
+	@echo "Checking module dependencies..."
+	@go mod tidy -diff
+	@go mod verify
+	@echo "Vetting code..."
+	@go vet ./...
+	@go tool staticcheck ./...
+	@go tool govulncheck ./...
 
 # Test the application
 test:
@@ -61,4 +74,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+.PHONY: all build run test clean watch docker-run docker-down itest audit tidy
