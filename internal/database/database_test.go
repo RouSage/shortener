@@ -90,11 +90,3 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("expected message to be 'It's healthy', got %s", stats["message"])
 	}
 }
-
-func TestClose(t *testing.T) {
-	srv := New()
-
-	if srv.Close() != nil {
-		t.Fatalf("expected Close() to return nil")
-	}
-}

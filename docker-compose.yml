@@ -10,33 +10,33 @@ services:
         environment:
             APP_ENV: ${APP_ENV}
             PORT: ${PORT}
-            BLUEPRINT_DB_HOST: ${BLUEPRINT_DB_HOST}
-            BLUEPRINT_DB_PORT: ${BLUEPRINT_DB_PORT}
-            BLUEPRINT_DB_DATABASE: ${BLUEPRINT_DB_DATABASE}
-            BLUEPRINT_DB_USERNAME: ${BLUEPRINT_DB_USERNAME}
-            BLUEPRINT_DB_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
-            BLUEPRINT_DB_SCHEMA: ${BLUEPRINT_DB_SCHEMA}
+            DB_HOST: ${DB_HOST}
+            DB_PORT: ${DB_PORT}
+            DB_DATABASE: ${DB_DATABASE}
+            DB_USERNAME: ${DB_USERNAME}
+            DB_PASSWORD: ${DB_PASSWORD}
+            DB_SCHEMA: ${DB_SCHEMA}
         depends_on:
-            psql_bp:
+            db:
                 condition: service_healthy
         networks:
             - blueprint
-    psql_bp:
+    db:
         image: postgres:latest
         restart: unless-stopped
         environment:
-            POSTGRES_DB: ${BLUEPRINT_DB_DATABASE}
-            POSTGRES_USER: ${BLUEPRINT_DB_USERNAME}
-            POSTGRES_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
+            POSTGRES_DB: ${DB_DATABASE}
+            POSTGRES_USER: ${DB_USERNAME}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
         ports:
-            - "${BLUEPRINT_DB_PORT}:5432"
+            - "${DB_PORT}:5432"
         volumes:
-            - psql_volume_bp:/var/lib/postgresql/data
+            - db_volume:/var/lib/postgresql/data
         healthcheck:
             test:
                 [
                     "CMD-SHELL",
-                    "sh -c 'pg_isready -U ${BLUEPRINT_DB_USERNAME} -d ${BLUEPRINT_DB_DATABASE}'",
+                    "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}'",
                 ]
             interval: 5s
             timeout: 5s
@@ -46,6 +46,6 @@ services:
             - blueprint
 
 volumes:
-    psql_volume_bp:
+    db_volume:
 networks:
     blueprint:
