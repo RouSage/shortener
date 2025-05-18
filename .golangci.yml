@@ -9,7 +9,6 @@ linters:
 formatters:
     enable:
         - gofmt
-        - golines
     exclusions:
         warn-unused: false
         generated: strict
@@ -21,3 +20,6 @@ issues:
     fix: false
     uniq-by-line: true
     whole-files: false
+
+severity:
+    default: error
