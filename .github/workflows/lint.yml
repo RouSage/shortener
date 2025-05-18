@@ -13,21 +13,6 @@ jobs:
                   go-version-input: 1.24.x
                   go-package: ./...
 
-    gostaticcheck:
-        runs-on: ubuntu-latest
-        name: staticcheck
-        steps:
-            - uses: actions/checkout@v4
-            - name: Setup Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: "1.24.x"
-            - run: "go vet ./..."
-            - uses: dominikh/staticcheck-action@v1
-              with:
-                  version: "latest"
-                  install-go: false
-
     golangci:
         runs-on: ubuntu-latest
         name: golangci-lint
