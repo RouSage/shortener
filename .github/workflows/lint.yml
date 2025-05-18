@@ -1,0 +1,44 @@
+name: lint
+on:
+    pull_request:
+
+jobs:
+    govulncheck:
+        runs-on: ubuntu-latest
+        name: govulncheck
+        steps:
+            - id: govulncheck
+              uses: golang/govulncheck-action@v1
+              with:
+                  go-version-input: 1.24.x
+                  go-package: ./...
+
+    gostaticcheck:
+        runs-on: ubuntu-latest
+        name: staticcheck
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.24.x"
+            - run: "go vet ./..."
+            - uses: dominikh/staticcheck-action@v1
+              with:
+                  version: "latest"
+                  install-go: false
+
+    golangci:
+        runs-on: ubuntu-latest
+        name: golangci-lint
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: "1.24.x"
+
+            - name: golangci-lint
+              uses: golangci/golangci-lint-action@v8
+              with:
+                  version: v2.1
