@@ -20,7 +20,7 @@ services:
             db:
                 condition: service_healthy
         networks:
-            - blueprint
+            - app_network
     db:
         image: postgres:latest
         restart: unless-stopped
@@ -43,9 +43,9 @@ services:
             retries: 3
             start_period: 15s
         networks:
-            - blueprint
+            - app_network
 
 volumes:
     db_volume:
 networks:
-    blueprint:
+    app_network:
