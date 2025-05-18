@@ -5,7 +5,7 @@ on:
 jobs:
     govulncheck:
         runs-on: ubuntu-latest
-        name: Run govulncheck
+        name: govulncheck
         steps:
             - id: govulncheck
               uses: golang/govulncheck-action@v1
@@ -15,7 +15,7 @@ jobs:
 
     gostaticcheck:
         runs-on: ubuntu-latest
-        name: Run code audit
+        name: staticcheck
         steps:
             - uses: actions/checkout@v4
             - name: Setup Go
@@ -25,12 +25,12 @@ jobs:
             - run: "go vet ./..."
             - uses: dominikh/staticcheck-action@v1
               with:
-                  version: "2024.1.1"
+                  version: "latest"
                   install-go: false
 
     golangci:
-        name: golangci-lint
         runs-on: ubuntu-latest
+        name: golangci-lint
         steps:
             - uses: actions/checkout@v4
             - name: Setup Go
