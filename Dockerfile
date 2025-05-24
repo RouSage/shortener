@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.24.3-alpine AS build
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY . .
 
 RUN go build -o main cmd/api/main.go
 
-FROM alpine:3.20.1 AS prod
+FROM alpine:3.21.3 AS prod
 
 WORKDIR /app
 
