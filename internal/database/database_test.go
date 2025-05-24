@@ -2,8 +2,8 @@ package database
 
 import (
 	"context"
+	"io"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger := zerolog.New(io.Discard)
 	srv := New(logger)
 	if srv == nil {
 		t.Fatal("New() returned nil")
@@ -77,7 +77,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger := zerolog.New(io.Discard)
 	srv := New(logger)
 
 	stats := srv.Health()
