@@ -103,7 +103,7 @@ watch:
 .PHONY: migrate/new
 migrate/new:
 		echo 'Creating migration files for ${name}...'
-		go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
 			create -seq -ext sql -dir ./internal/database/migrations ${name}
 
 ## migrate/up: apply all migrations
@@ -112,8 +112,8 @@ migrate/up: confirm
 	set -a; \
 	if [ -f .env ]; then source .env; fi; \
 	set +a; \
-	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-database "postgres://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
 		-path ./internal/database/migrations \
 		up
 
@@ -123,8 +123,8 @@ migrate/down: confirm
 	set -a; \
 	if [ -f .env ]; then source .env; fi; \
 	set +a; \
-	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-database "postgres://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
 		-path ./internal/database/migrations \
 		down 1
 
@@ -134,8 +134,8 @@ migrate/force: confirm
 	set -a; \
 	if [ -f .env ]; then source .env; fi; \
 	set +a; \
-	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-database "postgres://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
 		-path ./internal/database/migrations \
 		force ${version}
 
@@ -145,7 +145,7 @@ migrate/version:
 	set -a; \
 	if [ -f .env ]; then source .env; fi; \
 	set +a; \
-	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-database "postgres://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
 		-path ./internal/database/migrations \
 		version
