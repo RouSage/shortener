@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/rousage/shortener/internal/server"
 )
@@ -20,7 +21,7 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	log.Println("shutting down gracefully, press Ctrl+C again to force")
+	log.Info().Msg("shutting down gracefully, press Ctrl+C again to force")
 	stop() // Allow Ctrl+C to force shutdown
 
 	// The context is used to inform the server it has 5 seconds to finish
@@ -31,7 +32,7 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 		log.Printf("Server forced to shutdown with error: %v", err)
 	}
 
-	log.Println("Server exiting")
+	log.Info().Msg("Server exiting")
 
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
@@ -53,5 +54,5 @@ func main() {
 
 	// Wait for the graceful shutdown to complete
 	<-done
-	log.Println("Graceful shutdown complete.")
+	log.Info().Msg("Graceful shutdown complete.")
 }
