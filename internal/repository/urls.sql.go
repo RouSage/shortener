@@ -9,6 +9,34 @@ import (
 	"context"
 )
 
+const createUrl = `-- name: CreateUrl :one
+INSERT INTO urls (id, long_url)
+VALUES ($1, $2)
+RETURNING id, long_url
+`
+
+type CreateUrlParams struct {
+	ID      string `json:"id"`
+	LongUrl string `json:"longUrl"`
+}
+
+type CreateUrlRow struct {
+	ID      string `json:"id"`
+	LongUrl string `json:"longUrl"`
+}
+
+// CreateUrl
+//
+//	INSERT INTO urls (id, long_url)
+//	VALUES ($1, $2)
+//	RETURNING id, long_url
+func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (CreateUrlRow, error) {
+	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl)
+	var i CreateUrlRow
+	err := row.Scan(&i.ID, &i.LongUrl)
+	return i, err
+}
+
 const getLongUrl = `-- name: GetLongUrl :one
 SELECT long_url
   FROM urls

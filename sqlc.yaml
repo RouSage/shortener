@@ -2,7 +2,7 @@ version: "2"
 sql:
     - engine: "postgresql"
       schema: "internal/database/migrations"
-      queries: "internal/database/queries"
+      queries: "internal/repository/queries"
       gen:
           go:
               package: "repository"

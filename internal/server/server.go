@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rousage/shortener/internal/database"
-	"github.com/rousage/shortener/internal/repository"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -17,13 +17,10 @@ import (
 type Server struct {
 	port   int
 	logger zerolog.Logger
-	db     database.Service
-
-	// Repositories
-	repository *repository.Queries
+	db     *pgxpool.Pool
 }
 
-func NewServer() *http.Server {
+func New() *http.Server {
 	zerolog.TimestampFieldName = "timestamp"
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
@@ -32,25 +29,22 @@ func NewServer() *http.Server {
 		log.Fatal().Msgf("Error parsing PORT: %v", err)
 	}
 
-	db := database.New(logger)
-
-	NewServer := &Server{
-		port:       port,
-		logger:     logger,
-		db:         db,
-		repository: repository.New(db.GetDB()),
+	srv := &Server{
+		port:   port,
+		logger: logger,
+		db:     database.Connect(logger),
 	}
 
 	// Declare Server config
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", NewServer.port),
-		Handler:      NewServer.RegisterRoutes(),
+		Addr:         fmt.Sprintf(":%d", srv.port),
+		Handler:      srv.RegisterRoutes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 20 * time.Second,
 	}
 
-	NewServer.logger.Info().Msgf("Server started on port %d", NewServer.port)
+	srv.logger.Info().Msgf("Server started on port %d", srv.port)
 
 	return server
 }
