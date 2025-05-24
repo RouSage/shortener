@@ -29,7 +29,7 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := apiServer.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown with error: %v", err)
+		log.Printf("Server forced to shutdown with error: %s", err)
 	}
 
 	log.Info().Msg("Server exiting")

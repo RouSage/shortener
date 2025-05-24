@@ -18,7 +18,7 @@ func TestHandler(t *testing.T) {
 	s := &Server{}
 	// Assertions
 	if err := s.HelloWorldHandler(c); err != nil {
-		t.Errorf("handler() error = %v", err)
+		t.Errorf("handler() error = %s", err)
 		return
 	}
 	if resp.Code != http.StatusOK {
@@ -29,12 +29,12 @@ func TestHandler(t *testing.T) {
 	var actual map[string]string
 	// Decode the response body into the actual map
 	if err := json.NewDecoder(resp.Body).Decode(&actual); err != nil {
-		t.Errorf("handler() error decoding response body: %v", err)
+		t.Errorf("handler() error decoding response body: %s", err)
 		return
 	}
 	// Compare the decoded response with the expected value
 	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("handler() wrong response body. expected = %v, actual = %v", expected, actual)
+		t.Errorf("handler() wrong response body. expected = %s, actual = %s", expected, actual)
 		return
 	}
 }

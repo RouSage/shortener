@@ -38,12 +38,6 @@ test:
 	echo "Testing..."
 	go test -v -race ./...
 
-## itest: run integration tests
-.PHONY: itest
-itest:
-	echo "Running integration tests..."
-	go test -v -race ./internal/database
-
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
 test/cover:

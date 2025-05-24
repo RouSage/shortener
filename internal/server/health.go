@@ -21,8 +21,8 @@ func (s *Server) healthHandler(c echo.Context) error {
 	err := s.db.Ping(ctx)
 	if err != nil {
 		stats["status"] = "down"
-		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		stats["error"] = fmt.Sprintf("db down: %s", err)
+		log.Fatalf("db down: %s", err) // Log the error and terminate the program
 		return c.JSON(http.StatusOK, stats)
 	}
 
