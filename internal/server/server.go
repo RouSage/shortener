@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rs/zerolog"

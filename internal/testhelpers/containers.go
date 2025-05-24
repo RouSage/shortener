@@ -20,6 +20,7 @@ func CreatePostgresContainer() (*PostgresContainer, error) {
 		Database: "database",
 		Password: "password",
 		Username: "user",
+		Schema:   "public",
 	}
 
 	ctx := context.Background()
