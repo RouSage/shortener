@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandler(t *testing.T) {
@@ -16,15 +16,12 @@ func TestHandler(t *testing.T) {
 	resp := httptest.NewRecorder()
 	c := e.NewContext(req, resp)
 	s := &Server{}
+
 	// Assertions
-	if err := s.HelloWorldHandler(c); err != nil {
-		t.Errorf("handler() error = %s", err)
-		return
-	}
-	if resp.Code != http.StatusOK {
-		t.Errorf("handler() wrong status code = %v", resp.Code)
-		return
-	}
+	err := s.HelloWorldHandler(c)
+	assert.Nil(t, err, "handler() returned an error")
+	assert.Equal(t, http.StatusOK, resp.Code, "handler() wrong status code")
+
 	expected := map[string]string{"message": "Hello World"}
 	var actual map[string]string
 	// Decode the response body into the actual map
@@ -32,9 +29,5 @@ func TestHandler(t *testing.T) {
 		t.Errorf("handler() error decoding response body: %s", err)
 		return
 	}
-	// Compare the decoded response with the expected value
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("handler() wrong response body. expected = %s, actual = %s", expected, actual)
-		return
-	}
+	assert.Equal(t, expected, actual, "handler() wrong response body")
 }
