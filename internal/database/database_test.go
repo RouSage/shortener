@@ -3,11 +3,11 @@ package database
 import (
 	"context"
 	"io"
-	"log"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -20,8 +20,9 @@ func mustStartPostgresContainer() (func(context.Context, ...testcontainers.Termi
 		dbUser = "user"
 	)
 
+	ctx := context.Background()
 	dbContainer, err := postgres.Run(
-		context.Background(),
+		ctx,
 		"postgres:latest",
 		postgres.WithDatabase(dbName),
 		postgres.WithUsername(dbUser),
@@ -39,12 +40,12 @@ func mustStartPostgresContainer() (func(context.Context, ...testcontainers.Termi
 	password = dbPwd
 	username = dbUser
 
-	dbHost, err := dbContainer.Host(context.Background())
+	dbHost, err := dbContainer.Host(ctx)
 	if err != nil {
 		return dbContainer.Terminate, err
 	}
 
-	dbPort, err := dbContainer.MappedPort(context.Background(), "5432/tcp")
+	dbPort, err := dbContainer.MappedPort(ctx, "5432/tcp")
 	if err != nil {
 		return dbContainer.Terminate, err
 	}
@@ -58,13 +59,13 @@ func mustStartPostgresContainer() (func(context.Context, ...testcontainers.Termi
 func TestMain(m *testing.M) {
 	teardown, err := mustStartPostgresContainer()
 	if err != nil {
-		log.Fatalf("could not start postgres container: %v", err)
+		log.Fatal().Msgf("could not start postgres container: %v", err)
 	}
 
 	m.Run()
 
 	if teardown != nil && teardown(context.Background()) != nil {
-		log.Fatalf("could not teardown postgres container: %v", err)
+		log.Fatal().Msgf("could not stop postgres containerdown postgres container: %v", err)
 	}
 }
 
