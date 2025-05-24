@@ -31,6 +31,7 @@ func mustStartPostgresContainer() (func(context.Context, ...testcontainers.Termi
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
 				WithStartupTimeout(5*time.Second)),
+		postgres.WithSQLDriver("pgx"),
 	)
 	if err != nil {
 		return nil, err
