@@ -5,11 +5,11 @@
 package repository
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 type Url struct {
-	ID        string             `json:"id"`
-	LongUrl   string             `json:"longUrl"`
-	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	ID        string    `json:"id"`
+	LongUrl   string    `json:"longUrl"`
+	CreatedAt time.Time `json:"createdAt"`
 }
