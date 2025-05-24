@@ -1,65 +1,86 @@
-# Simple Makefile for a Go project
+# ==================================================================================== #
+# HELPERS
+# ==================================================================================== #
 
-# Build the application
-all: build test
+## help: print this help message
+.PHONY: help
+help:
+	echo 'Usage:'
+	sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
 
-build:
-	@echo "Building..."
-	@go build -o main cmd/api/main.go
+.PHONY: confirm
+confirm:
+	echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
 
-# Run the application
-run:
-	@go run cmd/api/main.go
-# Create DB container
-docker-run:
-	@if docker compose up --build 2>/dev/null; then \
-		: ; \
-	else \
-		echo "Falling back to Docker Compose V1"; \
-		docker-compose up --build; \
-	fi
+.PHONY: no-dirty
+no-dirty:
+	test -z "$(shell git status --porcelain)"
 
-# Shutdown DB container
-docker-down:
-	@if docker compose down 2>/dev/null; then \
-		: ; \
-	else \
-		echo "Falling back to Docker Compose V1"; \
-		docker-compose down; \
-	fi
+# ==================================================================================== #
+# QUALITY CONTROL
+# ==================================================================================== #
 
-tidy:
-	@echo "Tidying module dependencies..."
-	@go mod tidy
-	@echo "Formatting code..."
-	@go fmt ./...
-
+## audit: run quality control checks
+.PHONY: audit
 audit:
 	@echo "Checking module dependencies..."
-	@go mod tidy -diff
-	@go mod verify
-	@echo "Vetting code..."
-	@go vet ./...
-	@golangci-lint run ./...
-	@go tool govulncheck ./...
+	go mod tidy -diff
+	go mod verify
+	test -z "$(shell gofmt -l .)"
+	echo "Vetting code..."
+	go vet ./...
+	golangci-lint run ./...
+	go tool govulncheck ./...
 
-# Test the application
+## test: run all tests
+.PHONY: test
 test:
-	@echo "Testing..."
-	@go test ./... -v
-# Integrations Tests for the application
-itest:
-	@echo "Running integration tests..."
-	@go test ./internal/database -v
+	echo "Testing..."
+	go test -v -race ./...
 
-# Clean the binary
+## test/cover: run all tests and display coverage
+.PHONY: test/cover
+test/cover:
+	go test -v -race -coverprofile=/tmp/coverage.out ./...
+	go tool cover -html=/tmp/coverage.out
+
+## upgradeable: list direct dependencies that have upgrades available
+.PHONY: upgradeable
+upgradeable:
+	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
+
+# ==================================================================================== #
+# DEVELOPMENT
+# ==================================================================================== #
+
+## tidy: tidy modfiles and format .go files
+.PHONY: tidy
+tidy:
+	echo "Tidying module dependencies..."
+	go mod tidy
+	echo "Formatting code..."
+	go fmt ./...
+
+## build: build the application
+.PHONY: build
+build: audit no-dirty
+	echo "Building..."
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o main cmd/api/main.go
+
+## run: run the application
+.PHONY: run
+run:
+	go run cmd/api/main.go
+
+## clean: clean the binary
+.PHONY: clean
 clean:
-	@echo "Cleaning..."
-	@rm -f main
+	echo "Cleaning..."
+	rm -f main
 
-# Live Reload
+## watch: live Reload
 watch:
-	@if command -v air > /dev/null; then \
+	if command -v air > /dev/null; then \
             air; \
             echo "Watching...";\
         else \
@@ -74,4 +95,57 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest audit tidy
+# ==================================================================================== #
+# DATABASE
+# ==================================================================================== #
+
+## migrate/new name=$1: create a new migration file
+.PHONY: migrate/new
+migrate/new:
+		echo 'Creating migration files for ${name}...'
+		go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+			create -seq -ext sql -dir ./internal/database/migrations ${name}
+
+## migrate/up: apply all migrations
+.PHONY: migrate/up
+migrate/up: confirm
+	set -a; \
+	if [ -f .env ]; then source .env; fi; \
+	set +a; \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+		-path ./internal/database/migrations \
+		up
+
+## migrate/down: rollback the last migration
+.PHONY: migrate/down
+migrate/down: confirm
+	set -a; \
+	if [ -f .env ]; then source .env; fi; \
+	set +a; \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+		-path ./internal/database/migrations \
+		down 1
+
+## migrate/force version=$1: migrate to a specific version
+.PHONY: migrate/force
+migrate/force: confirm
+	set -a; \
+	if [ -f .env ]; then source .env; fi; \
+	set +a; \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+		-path ./internal/database/migrations \
+		force ${version}
+
+## migrate/version: show the current migration version
+.PHONY: migrate/version
+migrate/version:
+	set -a; \
+	if [ -f .env ]; then source .env; fi; \
+	set +a; \
+	go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
+		-path ./internal/database/migrations \
+		version
