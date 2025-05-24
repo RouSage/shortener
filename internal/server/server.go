@@ -38,5 +38,7 @@ func NewServer() *http.Server {
 		WriteTimeout: 20 * time.Second,
 	}
 
+	NewServer.logger.Info().Msgf("Server started on port %d", NewServer.port)
+
 	return server
 }
