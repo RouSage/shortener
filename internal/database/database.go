@@ -17,6 +17,7 @@ import (
 
 // Service represents a service that interacts with a database.
 type Service interface {
+	GetDB() *pgxpool.Pool
 	// Health returns a map of health status information.
 	// The keys and values in the map are service-specific.
 	Health() map[string]string
@@ -69,6 +70,10 @@ func New(logger zerolog.Logger) Service {
 	}
 
 	return dbInstance
+}
+
+func (s *service) GetDB() *pgxpool.Pool {
+	return s.db
 }
 
 // Health checks the health of the database connection by pinging the database.
