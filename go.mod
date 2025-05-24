@@ -3,6 +3,7 @@ module github.com/rousage/shortener
 go 1.24.3
 
 require (
+	github.com/jackc/pgx-zerolog v0.0.0-20230315001418-f978528409eb
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.3

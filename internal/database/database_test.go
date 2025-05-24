@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -67,14 +69,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-	srv := New()
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	srv := New(logger)
 	if srv == nil {
 		t.Fatal("New() returned nil")
 	}
 }
 
 func TestHealth(t *testing.T) {
-	srv := New()
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	srv := New(logger)
 
 	stats := srv.Health()
 

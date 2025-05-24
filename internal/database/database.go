@@ -8,8 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	zerologadapter "github.com/jackc/pgx-zerolog"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/rs/zerolog"
 )
 
 // Service represents a service that interacts with a database.
@@ -36,14 +39,27 @@ var (
 	dbInstance *service
 )
 
-func New() Service {
+func New(logger zerolog.Logger) Service {
 	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
 	}
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := pgxpool.New(context.Background(), connStr)
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
+	config, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	config.ConnConfig.Tracer = &tracelog.TraceLog{
+		Logger:   zerologadapter.NewLogger(logger),
+		LogLevel: tracelog.LogLevelTrace,
+	}
+
+	db, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = db.Ping(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

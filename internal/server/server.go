@@ -9,18 +9,24 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rousage/shortener/internal/database"
+	"github.com/rs/zerolog"
 )
 
 type Server struct {
-	port int
-	db   database.Service
+	port   int
+	logger zerolog.Logger
+	db     database.Service
 }
 
 func NewServer() *http.Server {
+	zerolog.TimestampFieldName = "timestamp"
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	NewServer := &Server{
-		port: port,
-		db:   database.New(),
+		port:   port,
+		db:     database.New(logger),
+		logger: logger,
 	}
 
 	// Declare Server config
