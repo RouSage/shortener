@@ -2,11 +2,9 @@ package server
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/rs/zerolog"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -14,7 +12,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	e.Use(middleware.RequestID())
 
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogLatency:       true,
 		LogProtocol:      true,
@@ -32,9 +29,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 		LogContentLength: true,
 		LogResponseSize:  true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			logEvent := logger.Info()
+			logEvent := s.logger.Info()
 			if v.Error != nil {
-				logEvent = logger.Error()
+				logEvent = s.logger.Error()
 			}
 
 			logEvent.
@@ -80,7 +77,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	e.GET("/", s.HelloWorldHandler)
-
 	e.GET("/health", s.healthHandler)
 
 	return e
@@ -92,8 +88,4 @@ func (s *Server) HelloWorldHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, resp)
-}
-
-func (s *Server) healthHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, s.db.Health())
 }
