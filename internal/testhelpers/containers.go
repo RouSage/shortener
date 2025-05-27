@@ -15,7 +15,7 @@ type PostgresContainer struct {
 	DatabaseConfig config.Database
 }
 
-func CreatePostgresContainer() (*PostgresContainer, error) {
+func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	cfg := config.Database{
 		Database: "database",
 		Password: "password",
@@ -23,7 +23,6 @@ func CreatePostgresContainer() (*PostgresContainer, error) {
 		Schema:   "public",
 	}
 
-	ctx := context.Background()
 	dbContainer, err := postgres.Run(
 		ctx,
 		"postgres:latest",
