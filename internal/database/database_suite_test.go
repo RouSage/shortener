@@ -24,7 +24,6 @@ func (suite *DatabaseTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err, "could not start postgres container")
 
 	suite.container = pgContainer
-
 }
 
 func (suite *DatabaseTestSuite) TearDownSuite() {
