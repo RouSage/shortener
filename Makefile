@@ -65,7 +65,8 @@ tidy:
 .PHONY: build
 build: audit no-dirty
 	echo "Building..."
-	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o main cmd/api/main.go
+	go build -ldflags='-s' -o ./bin/api ./cmd/api/main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o ./bin/linux_amd64/api ./cmd/api/main.go
 
 ## run: run the application
 .PHONY: run
