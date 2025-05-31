@@ -63,7 +63,7 @@ tidy:
 
 ## build: build the application
 .PHONY: build
-build: audit no-dirty
+build: no-dirty audit test
 	echo "Building..."
 	go build -ldflags='-s' -o ./bin/api ./cmd/api/main.go
 	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o ./bin/linux_amd64/api ./cmd/api/main.go
