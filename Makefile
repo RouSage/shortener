@@ -79,6 +79,7 @@ clean:
 	rm -f main
 
 ## watch: live Reload
+.PHONY: watch
 watch:
 	if command -v air > /dev/null; then \
             air; \
