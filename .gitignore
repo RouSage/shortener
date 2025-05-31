@@ -26,9 +26,8 @@ tmp/
 .env
 
 # Project build
-main
+bin/
 *templ.go
 
 # OS X generated file
 .DS_Store
-

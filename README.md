@@ -1,53 +1,129 @@
-# Project shortener
+# Shortener
 
-One Paragraph of project description goes here
+A simple URL shortener application built with Go, Echo, and PostgreSQL.
 
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
+### Prerequisites
+
+- Go 1.24+
+- Docker
+- sqlc
+- golangci-lint
+- Air (Optional)
+
+### SQL Queries
+
+SQL queries are implemented using [sqlc](https://sqlc.dev/). Use the `sqlc generate` command to generate the Go code for the SQL queries.
+
 ## MakeFile
 
-Run build make command with tests
+List of available make commands
+
 ```bash
-make all
+make help
+```
+
+### Running the application
+
+Run the PostgreSQL container
+
+```bash
+docker compose up -d db
+```
+
+Run the application
+
+```bash
+make run
 ```
 
 Build the application
+
 ```bash
 make build
 ```
 
-Run the application
+Build the application for development
+
 ```bash
-make run
-```
-Create DB container
-```bash
-make docker-run
+make build/dev
 ```
 
-Shutdown DB Container
-```bash
-make docker-down
-```
+Live reload the application (with Air)
 
-DB Integrations Test:
-```bash
-make itest
-```
-
-Live reload the application:
 ```bash
 make watch
 ```
 
-Run the test suite:
+Clean up binary from the last build:
+
+```bash
+make clean
+```
+
+### DB Migrations
+
+Create a new migration file
+
+```bash
+make migrate/new name={name}
+```
+
+Apply all migrations
+
+```bash
+make migrate/up
+```
+
+Rollback the last migration
+
+```bash
+make migrate/down
+```
+
+Migrate to a specific version
+
+```bash
+make migrate/force version={version}
+```
+
+Show the current migration version
+
+```bash
+make migrate/version
+```
+
+### Quality Control
+
+Audit the application for vulnerabilities, code quality, and dependency issues
+
+```bash
+make audit
+```
+
+Run all tests, including DB integration tests (made with testcontainers)
+
 ```bash
 make test
 ```
 
-Clean up binary from the last build:
+Run all tests and display coverage
+
 ```bash
-make clean
+make test/cover
+```
+
+List direct dependencies that have upgrades available
+
+```bash
+make upgradeable
+```
+
+Tidy module dependencies and format .go files
+
+```bash
+make tidy
 ```
