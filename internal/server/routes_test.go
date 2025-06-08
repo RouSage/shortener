@@ -7,11 +7,14 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHandler(t *testing.T) {
 	e := echo.New()
+	e.Validator = appvalidator.New()
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
 	c := e.NewContext(req, resp)

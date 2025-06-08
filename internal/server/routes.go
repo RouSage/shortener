@@ -5,10 +5,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rousage/shortener/internal/appvalidator"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
+	e.Validator = appvalidator.New()
 
 	e.Use(middleware.RequestID())
 
@@ -78,6 +80,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
+
+	e.POST("/urls", s.createShortURLHandler)
 
 	return e
 }
