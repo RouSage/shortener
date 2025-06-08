@@ -5,7 +5,7 @@ import gonanoid "github.com/matoous/go-nanoid/v2"
 const defaultLength = 8
 
 func ShortUrl(length int) (string, error) {
-	if length == 0 {
+	if length <= 0 {
 		length = defaultLength
 	}
 
