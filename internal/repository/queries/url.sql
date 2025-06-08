@@ -1,7 +1,7 @@
 -- name: CreateUrl :one
 INSERT INTO urls (id, long_url)
 VALUES ($1, $2)
-RETURNING id, long_url;
+RETURNING *;
 
 -- name: GetLongUrl :one
 SELECT long_url
