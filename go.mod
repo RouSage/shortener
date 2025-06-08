@@ -1,6 +1,6 @@
 module github.com/rousage/shortener
 
-go 1.24.3
+go 1.24.4
 
 require (
 	github.com/go-playground/validator/v10 v10.26.0
@@ -8,7 +8,7 @@ require (
 	github.com/jackc/pgx-zerolog v0.0.0-20230315001418-f978528409eb
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo/v4 v4.13.3
+	github.com/labstack/echo/v4 v4.13.4
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
