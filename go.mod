@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.37.0
