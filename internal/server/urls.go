@@ -19,7 +19,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(dto); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return s.failedValidationError(c, err)
 	}
 
 	const maxRetries = 3
