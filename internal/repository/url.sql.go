@@ -12,15 +12,10 @@ import (
 const createUrl = `-- name: CreateUrl :one
 INSERT INTO urls (id, long_url)
 VALUES ($1, $2)
-RETURNING id, long_url
+RETURNING id, long_url, created_at
 `
 
 type CreateUrlParams struct {
-	ID      string `json:"id"`
-	LongUrl string `json:"longUrl"`
-}
-
-type CreateUrlRow struct {
 	ID      string `json:"id"`
 	LongUrl string `json:"longUrl"`
 }
@@ -29,11 +24,11 @@ type CreateUrlRow struct {
 //
 //	INSERT INTO urls (id, long_url)
 //	VALUES ($1, $2)
-//	RETURNING id, long_url
-func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (CreateUrlRow, error) {
+//	RETURNING id, long_url, created_at
+func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, error) {
 	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl)
-	var i CreateUrlRow
-	err := row.Scan(&i.ID, &i.LongUrl)
+	var i Url
+	err := row.Scan(&i.ID, &i.LongUrl, &i.CreatedAt)
 	return i, err
 }
 

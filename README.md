@@ -18,7 +18,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 SQL queries are implemented using [sqlc](https://sqlc.dev/). Use the `sqlc generate` command to generate the Go code for the SQL queries.
 
-## MakeFile
+## Makefile
 
 List of available make commands
 
