@@ -81,8 +81,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
-	e.POST("/urls", s.createShortURLHandler)
-	e.GET("/urls/:code", s.getLongUrlHandler)
+	e.POST("/urls", s.CreateShortURLHandler)
+	e.GET("/urls/:code", s.GetLongUrlHandler)
 
 	return e
 }
