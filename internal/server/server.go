@@ -25,8 +25,12 @@ func New() *http.Server {
 		log.Fatal().Msgf("Error loading config: %s", err)
 	}
 
-	zerolog.TimestampFieldName = "timestamp"
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	zerolog.TimestampFieldName = "timestamp"
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	if cfg.App.Env == config.EnvProduction {
+		logger = logger.Level(zerolog.InfoLevel)
+	}
 
 	srv := &Server{
 		cfg:    cfg,
