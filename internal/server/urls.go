@@ -29,7 +29,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 		err      error
 	)
 
-	r := repository.New(s.db)
+	rep := repository.New(s.db)
 
 	for attempt := range maxRetries {
 		shortUrl, err = generator.ShortUrl(s.cfg.App.ShortUrlLength)
@@ -37,7 +37,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			break
 		}
 
-		newUrl, err = r.CreateUrl(c.Request().Context(), repository.CreateUrlParams{
+		newUrl, err = rep.CreateUrl(c.Request().Context(), repository.CreateUrlParams{
 			ID:      shortUrl,
 			LongUrl: dto.URL,
 		})
@@ -45,7 +45,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			break
 		}
 
-		if r.IsDuplicateKeyError(err) {
+		if rep.IsDuplicateKeyError(err) {
 			s.logger.Warn().Err(err).Msgf("Short URL collision detected on attempt %d, retrying", attempt+1)
 			continue
 		} else {
@@ -59,4 +59,35 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, newUrl)
+}
+
+type GetLongUrlParams struct {
+	Code string `param:"code" validate:"required"`
+}
+
+func (s *Server) getLongUrlHandler(c echo.Context) error {
+	params := new(GetLongUrlParams)
+	if err := c.Bind(params); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+
+	rep := repository.New(s.db)
+
+	longUrl, err := rep.GetLongUrl(c.Request().Context(), params.Code)
+	if err != nil {
+		if rep.IsNotFoundError(err) {
+			s.logger.Error().Err(err).Msgf("long url not found for code '%s'", params.Code)
+			return echo.ErrNotFound
+		}
+
+		s.logger.Error().Err(err).Msgf("failed to get long url for code '%s'", params.Code)
+		return echo.ErrInternalServerError
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"long_url": longUrl,
+	})
 }

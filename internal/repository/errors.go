@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -13,4 +14,8 @@ func (q *Queries) IsDuplicateKeyError(err error) bool {
 	}
 
 	return false
+}
+
+func (q *Queries) IsNotFoundError(err error) bool {
+	return errors.Is(err, pgx.ErrNoRows)
 }
