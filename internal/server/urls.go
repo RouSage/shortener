@@ -65,7 +65,7 @@ type GetLongUrlParams struct {
 	Code string `param:"code" validate:"required"`
 }
 
-func (s *Server) getLongUrlHandler(c echo.Context) error {
+func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	params := new(GetLongUrlParams)
 	if err := c.Bind(params); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -88,6 +88,6 @@ func (s *Server) getLongUrlHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
-		"long_url": longUrl,
+		"longUrl": longUrl,
 	})
 }

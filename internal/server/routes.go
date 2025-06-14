@@ -82,7 +82,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/health", s.healthHandler)
 
 	e.POST("/urls", s.CreateShortURLHandler)
-	e.GET("/urls/:code", s.getLongUrlHandler)
+	e.GET("/urls/:code", s.GetLongUrlHandler)
 
 	return e
 }
