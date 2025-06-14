@@ -12,7 +12,7 @@ type CreateShortUrlDTO struct {
 	URL string `json:"url" validate:"required,http_url"`
 }
 
-func (s *Server) createShortURLHandler(c echo.Context) error {
+func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	dto := new(CreateShortUrlDTO)
 
 	if err := c.Bind(dto); err != nil {

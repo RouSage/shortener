@@ -7,6 +7,11 @@ type App struct {
 	ShortUrlLength int
 }
 
+const (
+	EnvDevelopment = "development"
+	EnvProduction  = "production"
+)
+
 func loadAppConfig() (App, error) {
 	env, err := getEnv("APP_ENV")
 	if err != nil {
