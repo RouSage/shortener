@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -28,6 +29,9 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 	if err != nil {
 		log.Fatal().Msgf("failed to parse connection string: %s", err)
 	}
+	config.MaxConns = 30
+	config.MinIdleConns = 5
+	config.MaxConnLifetimeJitter = 5 * time.Minute
 	config.ConnConfig.Tracer = &tracelog.TraceLog{
 		Logger:   zerologadapter.NewLogger(logger),
 		LogLevel: tracelog.LogLevelTrace,
