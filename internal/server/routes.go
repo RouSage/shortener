@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -67,6 +68,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 			return c.Request().URL.Path == "/health"
 		},
 	}))
+
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
+		Rate:      10,
+		Burst:     20,
+		ExpiresIn: 3 * time.Minute,
+	})))
 
 	e.Use(middleware.Recover())
 
