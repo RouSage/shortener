@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"golang.org/x/time/rate"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -70,8 +71,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
-		Rate:      10,
-		Burst:     20,
+		Rate:      rate.Limit(s.cfg.Server.LimiterRPS),
+		Burst:     s.cfg.Server.LimiterBurst,
 		ExpiresIn: 3 * time.Minute,
 	})))
 
