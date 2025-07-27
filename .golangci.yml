@@ -2,6 +2,8 @@ version: "2"
 
 linters:
     default: standard
+    enable:
+        - gosec
     exclusions:
         warn-unused: false
         generated: strict

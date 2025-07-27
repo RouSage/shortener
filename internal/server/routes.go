@@ -2,10 +2,12 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"golang.org/x/time/rate"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
@@ -67,6 +69,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 			return c.Request().URL.Path == "/health"
 		},
 	}))
+
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
+		Rate:      rate.Limit(s.cfg.Server.LimiterRPS),
+		Burst:     s.cfg.Server.LimiterBurst,
+		ExpiresIn: 3 * time.Minute,
+	})))
 
 	e.Use(middleware.Recover())
 
