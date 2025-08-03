@@ -1,51 +1,56 @@
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
-            target: prod
-        restart: unless-stopped
-        ports:
-            - ${PORT}:${PORT}
-        environment:
-            APP_ENV: ${APP_ENV}
-            PORT: ${PORT}
-            DB_HOST: ${DB_HOST}
-            DB_PORT: ${DB_PORT}
-            DB_DATABASE: ${DB_DATABASE}
-            DB_USERNAME: ${DB_USERNAME}
-            DB_PASSWORD: ${DB_PASSWORD}
-            DB_SCHEMA: ${DB_SCHEMA}
-        depends_on:
-            db:
-                condition: service_healthy
-        networks:
-            - app_network
-    db:
-        image: postgres:latest
-        restart: unless-stopped
-        environment:
-            POSTGRES_DB: ${DB_DATABASE}
-            POSTGRES_USER: ${DB_USERNAME}
-            POSTGRES_PASSWORD: ${DB_PASSWORD}
-        ports:
-            - "${DB_PORT}:5432"
-        volumes:
-            - db_volume:/var/lib/postgresql/data
-        healthcheck:
-            test:
-                [
-                    "CMD-SHELL",
-                    "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}'",
-                ]
-            interval: 5s
-            timeout: 5s
-            retries: 3
-            start_period: 15s
-        networks:
-            - app_network
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      APP_ENV: ${APP_ENV}
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SCHEMA: ${DB_SCHEMA}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+  db:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "sh -c 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - app_network
+
+  valkey:
+    image: valkey/valkey:latest
+    restart: unless-stopped
+    ports:
+      - "${VALKEY_PORT}:6379"
+    networks:
+      - app_network
 
 volumes:
-    db_volume:
+  db_volume:
 networks:
-    app_network:
+  app_network:
