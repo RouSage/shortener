@@ -12,6 +12,7 @@ import (
 type Config struct {
 	App      App
 	Database Database
+	Cache    Cache
 	Server   Server
 }
 
@@ -31,6 +32,11 @@ func Load() (*Config, error) {
 	config.Database, err = loadDatabaseConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load database config: %w", err)
+	}
+
+	config.Cache, err = loadCacheConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load cache config: %w", err)
 	}
 
 	config.Server, err = loadServerConfig()
