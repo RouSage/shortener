@@ -78,8 +78,18 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 	cache := cache.New(s.cache)
 
+	longUrl, err := cache.GetLongUrl(ctx, params.Code)
+	if err != nil {
+		s.logger.Warn().Err(err).Msgf("failed to get long url from cache for code '%s'", params.Code)
+	}
+	if longUrl != "" {
+		return c.JSON(http.StatusOK, map[string]string{
+			"longUrl": longUrl,
+		})
+	}
+
 	rep := repository.New(s.db)
-	longUrl, err := rep.GetLongUrl(ctx, params.Code)
+	longUrl, err = rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		if rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Msgf("long url not found for code '%s'", params.Code)
