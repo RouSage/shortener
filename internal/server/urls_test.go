@@ -187,8 +187,8 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 			c.SetParamValues(tt.code)
 
 			// Assertions
-			cache := cache.New(s.cache)
-			actualCache, err := cache.GetLongUrl(c.Request().Context(), tt.code)
+			urlCache := cache.New(s.cache)
+			actualCache, err := urlCache.GetLongUrl(c.Request().Context(), tt.code)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
 
@@ -218,8 +218,8 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 
 	db := database.Connect(logger, pgContainer.DatabaseConfig)
 	require.NotNil(t, db, "could not connect to postgres")
-	cache := cache.Connect(logger, cacheContainer.CacheConfig)
-	require.NotNil(t, cache, "could not connect to cache")
+	cacheClient := cache.Connect(logger, cacheContainer.CacheConfig)
+	require.NotNil(t, cacheClient, "could not connect to cache")
 
 	cfg := &config.Config{
 		Database: pgContainer.DatabaseConfig,
@@ -236,7 +236,7 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 		logger: logger,
 		cfg:    cfg,
 		db:     db,
-		cache:  cache,
+		cache:  cacheClient,
 	}
 
 	cleanup := func() {
