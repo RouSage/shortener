@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/valkey-io/valkey-glide/go/v2/options"
 )
 
 var (
@@ -13,10 +15,8 @@ var (
 func (c *Cache) SetLongUrl(ctx context.Context, code, longUrl string) (key string, err error) {
 	key = c.getUrlKey(code)
 
-	if _, err := c.client.Set(ctx, key, longUrl); err != nil {
-		return key, err
-	}
-	if _, err := c.client.Expire(ctx, key, defaultExpire); err != nil {
+	opts := options.NewSetOptions().SetExpiry(options.NewExpiryIn(defaultExpire))
+	if _, err := c.client.SetWithOptions(ctx, key, longUrl, *opts); err != nil {
 		return key, err
 	}
 
