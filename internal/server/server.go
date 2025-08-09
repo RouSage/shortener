@@ -51,7 +51,7 @@ func New() *http.Server {
 		WriteTimeout: 20 * time.Second,
 	}
 
-	srv.logger.Info().Msgf("Server started on port %d", srv.cfg.Server.Port)
+	srv.logger.Info().Msgf("server started on port %d", srv.cfg.Server.Port)
 
 	return server
 }
