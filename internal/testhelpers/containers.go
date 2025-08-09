@@ -67,7 +67,6 @@ func CreateValkeyContainer(ctx context.Context) (*ValkeyContainer, error) {
 	cacheContainer, err := valkey.Run(
 		ctx,
 		"valkey/valkey:latest",
-		valkey.WithSnapshotting(10, 1),
 		valkey.WithLogLevel(valkey.LogLevelVerbose),
 	)
 	if err != nil {

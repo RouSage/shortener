@@ -7,7 +7,6 @@ import (
 
 	"github.com/rousage/shortener/internal/testhelpers"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,14 +20,14 @@ func (suite *CacheTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	cacheContainer, err := testhelpers.CreateValkeyContainer(suite.ctx)
-	require.NoError(suite.T(), err, "could not start cache container")
+	suite.Require().NoError(err, "could not start cache container")
 
 	suite.container = cacheContainer
 }
 
 func (suite *CacheTestSuite) TearDownSuite() {
 	err := suite.container.Terminate(suite.ctx)
-	require.NoError(suite.T(), err, "error terminating cache container")
+	suite.Require().NoError(err, "error terminating cache container")
 }
 
 func (suite *CacheTestSuite) TestConnect() {

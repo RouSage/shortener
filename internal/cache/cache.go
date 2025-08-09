@@ -24,7 +24,7 @@ func Connect(logger zerolog.Logger, cfg config.Cache) *glide.Client {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to ping cache")
 	}
-	logger.Info().Msgf("cache response: %s", res)
+	logger.Debug().Msgf("cache response: %s", res)
 
 	return client
 }

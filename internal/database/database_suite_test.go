@@ -7,7 +7,6 @@ import (
 
 	"github.com/rousage/shortener/internal/testhelpers"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,14 +20,14 @@ func (suite *DatabaseTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
-	require.NoError(suite.T(), err, "could not start postgres container")
+	suite.Require().NoError(err, "could not start postgres container")
 
 	suite.container = pgContainer
 }
 
 func (suite *DatabaseTestSuite) TearDownSuite() {
 	err := suite.container.Terminate(suite.ctx)
-	require.NoError(suite.T(), err, "error terminating postgres container")
+	suite.Require().NoError(err, "error terminating postgres container")
 }
 
 func (suite *DatabaseTestSuite) TestConnect() {

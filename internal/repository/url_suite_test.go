@@ -13,7 +13,6 @@ import (
 	"github.com/rousage/shortener/internal/testhelpers"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,18 +29,18 @@ func (suite *UrlTestSuite) SetupSuite() {
 
 	// Create a new postgres container for the whole test suite
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
-	require.NoError(suite.T(), err, "could not start postgres container")
+	suite.Require().NoError(err, "could not start postgres container")
 
 	// Snapshot the DB to restore it later
 	err = pgContainer.Snapshot(suite.ctx)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 
 	suite.container = pgContainer
 }
 
 func (suite *UrlTestSuite) TearDownSuite() {
 	err := suite.container.Terminate(suite.ctx)
-	require.NoError(suite.T(), err, "error terminating postgres container")
+	suite.Require().NoError(err, "error terminating postgres container")
 }
 
 func (suite *UrlTestSuite) SetupTest() {
@@ -58,7 +57,7 @@ func (suite *UrlTestSuite) TearDownTest() {
 	// Restore the DB after each test to have a clean state
 	suite.db.Close()
 	err := suite.container.Restore(suite.ctx)
-	require.NoError(suite.T(), err)
+	suite.Require().NoError(err)
 }
 
 func (suite *UrlTestSuite) TestCreateUrl() {
