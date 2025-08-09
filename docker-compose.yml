@@ -10,14 +10,21 @@ services:
         environment:
             APP_ENV: ${APP_ENV}
             PORT: ${PORT}
+            ALLOW_ORIGINS: ${ALLOW_ORIGINS}
             DB_HOST: ${DB_HOST}
             DB_PORT: ${DB_PORT}
             DB_DATABASE: ${DB_DATABASE}
             DB_USERNAME: ${DB_USERNAME}
             DB_PASSWORD: ${DB_PASSWORD}
             DB_SCHEMA: ${DB_SCHEMA}
+            VALKEY_HOST: ${VALKEY_HOST}
+            VALKEY_PORT: ${VALKEY_PORT}
+            LIMITER_RPS: ${LIMITER_RPS}
+            LIMITER_BURST: ${LIMITER_BURST}
         depends_on:
             db:
+                condition: service_healthy
+            valkey:
                 condition: service_healthy
         networks:
             - app_network
@@ -42,6 +49,14 @@ services:
             timeout: 5s
             retries: 3
             start_period: 15s
+        networks:
+            - app_network
+
+    valkey:
+        image: valkey/valkey:latest
+        restart: unless-stopped
+        ports:
+            - "${VALKEY_PORT}:6379"
         networks:
             - app_network
 

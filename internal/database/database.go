@@ -16,7 +16,6 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 //go:embed migrations
@@ -27,7 +26,7 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
-		log.Fatal().Msgf("failed to parse connection string: %s", err)
+		logger.Fatal().Err(err).Msg("failed to parse connection string")
 	}
 	config.MaxConns = 30
 	config.MinIdleConns = 5
@@ -39,17 +38,17 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 
 	db, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
-		log.Fatal().Msgf("faile to create DB pool: %s", err)
+		logger.Fatal().Err(err).Msg("failed to create DB pool")
 	}
 
 	err = migrateDB(connString)
 	if err != nil {
-		log.Fatal().Msgf("failed to migrate DB: %s", err)
+		logger.Fatal().Err(err).Msg("failed to migrate DB")
 	}
 
 	err = db.Ping(context.Background())
 	if err != nil {
-		log.Fatal().Msgf("failed to ping DB: %s", err)
+		logger.Fatal().Err(err).Msgf("failed to ping DB")
 	}
 
 	return db

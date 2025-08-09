@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/repository"
@@ -27,12 +28,17 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
 	require.NoError(t, err, "could not start postgres container")
+	cacheContainer, err := testhelpers.CreateValkeyContainer(ctx)
+	require.NoError(t, err, "could not start cache container")
 
 	db := database.Connect(logger, pgContainer.DatabaseConfig)
 	require.NotNil(t, db, "could not connect to postgres")
+	cache := cache.Connect(logger, cacheContainer.CacheConfig)
+	require.NotNil(t, cache, "could not connect to cache")
 
 	cfg := &config.Config{
 		Database: pgContainer.DatabaseConfig,
+		Cache:    cacheContainer.CacheConfig,
 		App: config.App{
 			Env: config.EnvDevelopment,
 		},
@@ -45,11 +51,15 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 		logger: logger,
 		cfg:    cfg,
 		db:     db,
+		cache:  cache,
 	}
 
 	cleanup := func() {
 		err := pgContainer.Terminate(ctx)
 		require.NoError(t, err, "error terminating postgres container")
+
+		err = cacheContainer.Terminate(ctx)
+		require.NoError(t, err, "error terminating cache container")
 	}
 
 	return s, e, cleanup

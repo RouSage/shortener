@@ -7,6 +7,7 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/modules/valkey"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -54,5 +55,41 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	return &PostgresContainer{
 		PostgresContainer: dbContainer,
 		DatabaseConfig:    cfg,
+	}, err
+}
+
+type ValkeyContainer struct {
+	*valkey.ValkeyContainer
+	CacheConfig config.Cache
+}
+
+func CreateValkeyContainer(ctx context.Context) (*ValkeyContainer, error) {
+	cacheContainer, err := valkey.Run(
+		ctx,
+		"valkey/valkey:latest",
+		valkey.WithLogLevel(valkey.LogLevelVerbose),
+		testcontainers.WithWaitStrategy(
+			wait.ForListeningPort("6379/tcp").WithStartupTimeout(5*time.Second)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := config.Cache{}
+
+	cfg.Host, err = cacheContainer.Host(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := cacheContainer.MappedPort(ctx, "6379/tcp")
+	if err != nil {
+		return nil, err
+	}
+	cfg.Port = port.Int()
+
+	return &ValkeyContainer{
+		ValkeyContainer: cacheContainer,
+		CacheConfig:     cfg,
 	}, err
 }
