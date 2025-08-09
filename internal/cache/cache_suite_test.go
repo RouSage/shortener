@@ -33,8 +33,8 @@ func (suite *CacheTestSuite) TearDownSuite() {
 
 func (suite *CacheTestSuite) TestConnect() {
 	logger := zerolog.New(io.Discard)
-	db := Connect(logger, suite.container.CacheConfig)
-	suite.NotNil(db, "Connect() returned nil")
+	cache := Connect(logger, suite.container.CacheConfig)
+	suite.NotNil(cache, "Connect() returned nil")
 }
 
 func TestCacheTestSuite(t *testing.T) {

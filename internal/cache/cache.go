@@ -10,12 +10,12 @@ import (
 )
 
 func Connect(logger zerolog.Logger, cfg config.Cache) *glide.Client {
-	config := cacheConfig.NewClientConfiguration().WithAddress(&cacheConfig.NodeAddress{
+	clientCfg := cacheConfig.NewClientConfiguration().WithAddress(&cacheConfig.NodeAddress{
 		Host: cfg.Host,
 		Port: cfg.Port,
 	})
 
-	client, err := glide.NewClient(config)
+	client, err := glide.NewClient(clientCfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to connect to cache")
 	}
