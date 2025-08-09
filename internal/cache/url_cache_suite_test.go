@@ -20,7 +20,7 @@ type UrlTestSuite struct {
 func (suite *UrlTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
-	// Create a new cachecontainer for the whole test suite
+	// Create a new cache container for the whole test suite
 	valkeyContainer, err := testhelpers.CreateValkeyContainer(suite.ctx)
 	suite.Require().NoError(err, "could not start cache container")
 
