@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
 )
@@ -74,9 +75,11 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 		return s.failedValidationError(c, err)
 	}
 
-	rep := repository.New(s.db)
+	ctx := c.Request().Context()
+	cache := cache.New(s.cache)
 
-	longUrl, err := rep.GetLongUrl(c.Request().Context(), params.Code)
+	rep := repository.New(s.db)
+	longUrl, err := rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		if rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Msgf("long url not found for code '%s'", params.Code)
@@ -85,6 +88,10 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 
 		s.logger.Error().Err(err).Msgf("failed to get long url for code '%s'", params.Code)
 		return echo.ErrInternalServerError
+	}
+
+	if key, err := cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
+		s.logger.Warn().Err(err).Msgf("failed to cache long url for code '%s' with key '%s'", params.Code, key)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{

@@ -52,7 +52,7 @@ func (suite *UrlTestSuite) TearDownTest() {
 func (suite *UrlTestSuite) TestSetLongUrl() {
 	expectedTTL := int64(defaultExpire.Seconds())
 
-	// Write a long URL to the cache and get bakc a key
+	// Write a long URL to the cache and get back a key
 	key, err := suite.cache.SetLongUrl(suite.ctx, "short-url", "https://long.url")
 	suite.NoError(err)
 	suite.Equal("long_url:short-url", key)
