@@ -14,6 +14,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.38.0
+	github.com/valkey-io/valkey-glide/go/v2 v2.0.1
 	golang.org/x/time v0.12.0
 )
 
