@@ -68,6 +68,8 @@ func CreateValkeyContainer(ctx context.Context) (*ValkeyContainer, error) {
 		ctx,
 		"valkey/valkey:latest",
 		valkey.WithLogLevel(valkey.LogLevelVerbose),
+		testcontainers.WithWaitStrategy(
+			wait.ForListeningPort("6379/tcp").WithStartupTimeout(5*time.Second)),
 	)
 	if err != nil {
 		return nil, err
