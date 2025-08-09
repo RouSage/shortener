@@ -22,7 +22,7 @@ func New() *AppValidator {
 	}
 }
 
-func (av *AppValidator) Validate(i interface{}) error {
+func (av *AppValidator) Validate(i any) error {
 	if err := av.validator.Struct(i); err != nil {
 		return err
 	}

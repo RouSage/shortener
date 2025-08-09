@@ -28,3 +28,11 @@ func Connect(logger zerolog.Logger, cfg config.Cache) *glide.Client {
 
 	return client
 }
+
+type Cache struct {
+	client *glide.Client
+}
+
+func New(client *glide.Client) *Cache {
+	return &Cache{client: client}
+}

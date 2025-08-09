@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
 )
@@ -46,7 +47,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		}
 
 		if rep.IsDuplicateKeyError(err) {
-			s.logger.Warn().Err(err).Msgf("Short URL collision detected on attempt %d, retrying", attempt+1)
+			s.logger.Warn().Err(err).Int("attemtpt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
 		} else {
 			break
@@ -54,7 +55,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	}
 
 	if err != nil {
-		s.logger.Error().Err(err).Msgf("failed to generate short url after %d attempts", maxRetries)
+		s.logger.Error().Err(err).Int("retries", maxRetries).Msg("failed to generate short url")
 		return echo.ErrInternalServerError
 	}
 
@@ -74,17 +75,33 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 		return s.failedValidationError(c, err)
 	}
 
-	rep := repository.New(s.db)
+	ctx := c.Request().Context()
+	cache := cache.New(s.cache)
 
-	longUrl, err := rep.GetLongUrl(c.Request().Context(), params.Code)
+	longUrl, err := cache.GetLongUrl(ctx, params.Code)
+	if err != nil {
+		s.logger.Warn().Err(err).Str("code", params.Code).Msg("failed to get long url from cache")
+	}
+	if longUrl != "" {
+		return c.JSON(http.StatusOK, map[string]string{
+			"longUrl": longUrl,
+		})
+	}
+
+	rep := repository.New(s.db)
+	longUrl, err = rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		if rep.IsNotFoundError(err) {
-			s.logger.Error().Err(err).Msgf("long url not found for code '%s'", params.Code)
+			s.logger.Error().Err(err).Str("code", params.Code).Msg("long url not found")
 			return echo.ErrNotFound
 		}
 
-		s.logger.Error().Err(err).Msgf("failed to get long url for code '%s'", params.Code)
+		s.logger.Error().Err(err).Str("code", params.Code).Msg("failed to get long url")
 		return echo.ErrInternalServerError
+	}
+
+	if key, err := cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
+		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{

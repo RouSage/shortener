@@ -22,49 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
-	ctx := context.Background()
-	logger := zerolog.New(io.Discard)
-
-	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
-	require.NoError(t, err, "could not start postgres container")
-	cacheContainer, err := testhelpers.CreateValkeyContainer(ctx)
-	require.NoError(t, err, "could not start cache container")
-
-	db := database.Connect(logger, pgContainer.DatabaseConfig)
-	require.NotNil(t, db, "could not connect to postgres")
-	cache := cache.Connect(logger, cacheContainer.CacheConfig)
-	require.NotNil(t, cache, "could not connect to cache")
-
-	cfg := &config.Config{
-		Database: pgContainer.DatabaseConfig,
-		Cache:    cacheContainer.CacheConfig,
-		App: config.App{
-			Env: config.EnvDevelopment,
-		},
-	}
-
-	e := echo.New()
-	e.Validator = appvalidator.New()
-
-	s := &Server{
-		logger: logger,
-		cfg:    cfg,
-		db:     db,
-		cache:  cache,
-	}
-
-	cleanup := func() {
-		err := pgContainer.Terminate(ctx)
-		require.NoError(t, err, "error terminating postgres container")
-
-		err = cacheContainer.Terminate(ctx)
-		require.NoError(t, err, "error terminating cache container")
-	}
-
-	return s, e, cleanup
-}
-
 func TestCreateShortURLHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 
@@ -154,23 +111,7 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 
 func TestGetLongUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-
-	payload := map[string]string{"url": "https://example.com"}
-	body, err := json.Marshal(payload)
-	require.NoError(t, err, "could not marshal payload")
-
-	createReq := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
-	createReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	createRes := httptest.NewRecorder()
-	createCtx := e.NewContext(createReq, createRes)
-
-	// Assertions
-	err = s.CreateShortURLHandler(createCtx)
-	require.NoError(t, err)
-
-	var createdUrl repository.Url
-	err = json.NewDecoder(createRes.Body).Decode(&createdUrl)
-	require.NoError(t, err, "error decoding response body")
+	createdUrl := createShortUrl(t, s, e, "https://example.com")
 
 	tests := []struct {
 		name           string
@@ -217,4 +158,114 @@ func TestGetLongUrlHandler(t *testing.T) {
 	}
 
 	t.Cleanup(cleanup)
+}
+
+func TestGetLongUrlHandler_Cache(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	createdUrl := createShortUrl(t, s, e, "https://example.com")
+
+	tests := []struct {
+		name           string
+		code           string
+		expectedStatus int
+		expectedUrl    string
+		expectedCache  string
+	}{
+		{name: "cache miss", code: createdUrl.ID, expectedStatus: http.StatusOK, expectedUrl: createdUrl.LongUrl, expectedCache: ""},
+		{name: "cache hit", code: createdUrl.ID, expectedStatus: http.StatusOK, expectedUrl: createdUrl.LongUrl, expectedCache: createdUrl.LongUrl},
+		{name: "cache hit 2", code: createdUrl.ID, expectedStatus: http.StatusOK, expectedUrl: createdUrl.LongUrl, expectedCache: createdUrl.LongUrl},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls/%s", tt.code), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+			c.SetPath("/urls/:code")
+			c.SetParamNames("code")
+			c.SetParamValues(tt.code)
+
+			// Assertions
+			urlCache := cache.New(s.cache)
+			actualCache, err := urlCache.GetLongUrl(c.Request().Context(), tt.code)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
+
+			err = s.GetLongUrlHandler(c)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			var actual map[string]string
+			err = json.NewDecoder(res.Body).Decode(&actual)
+			require.NoError(t, err, "error decoding response body")
+			assert.Equal(t, tt.expectedUrl, actual["longUrl"], "long URL does not match")
+
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
+	ctx := context.Background()
+	logger := zerolog.New(io.Discard)
+
+	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
+	require.NoError(t, err, "could not start postgres container")
+	cacheContainer, err := testhelpers.CreateValkeyContainer(ctx)
+	require.NoError(t, err, "could not start cache container")
+
+	db := database.Connect(logger, pgContainer.DatabaseConfig)
+	require.NotNil(t, db, "could not connect to postgres")
+	cacheClient := cache.Connect(logger, cacheContainer.CacheConfig)
+	require.NotNil(t, cacheClient, "could not connect to cache")
+
+	cfg := &config.Config{
+		Database: pgContainer.DatabaseConfig,
+		Cache:    cacheContainer.CacheConfig,
+		App: config.App{
+			Env: config.EnvDevelopment,
+		},
+	}
+
+	e := echo.New()
+	e.Validator = appvalidator.New()
+
+	s := &Server{
+		logger: logger,
+		cfg:    cfg,
+		db:     db,
+		cache:  cacheClient,
+	}
+
+	cleanup := func() {
+		err := pgContainer.Terminate(ctx)
+		require.NoError(t, err, "error terminating postgres container")
+
+		err = cacheContainer.Terminate(ctx)
+		require.NoError(t, err, "error terminating cache container")
+	}
+
+	return s, e, cleanup
+}
+
+func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string) repository.Url {
+	payload := map[string]string{"url": url}
+	body, err := json.Marshal(payload)
+	require.NoError(t, err, "could not marshal payload")
+
+	createReq := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+	createReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	createRes := httptest.NewRecorder()
+	createCtx := e.NewContext(createReq, createRes)
+
+	err = s.CreateShortURLHandler(createCtx)
+	require.NoError(t, err)
+
+	var createdUrl repository.Url
+	err = json.NewDecoder(createRes.Body).Decode(&createdUrl)
+	require.NoError(t, err, "error decoding response body")
+
+	return createdUrl
 }
