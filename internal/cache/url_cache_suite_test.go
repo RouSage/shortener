@@ -50,6 +50,8 @@ func (suite *UrlTestSuite) TearDownTest() {
 }
 
 func (suite *UrlTestSuite) TestSetLongUrl() {
+	expectedTTL := int64(defaultExpire.Seconds())
+
 	// Write a long URL to the cache and get bakc a key
 	key, err := suite.cache.SetLongUrl(suite.ctx, "short-url", "https://long.url")
 	suite.NoError(err)
@@ -57,7 +59,8 @@ func (suite *UrlTestSuite) TestSetLongUrl() {
 	// Check that TTL is set to default
 	ttl, err := suite.cache.client.TTL(suite.ctx, key)
 	suite.NoError(err)
-	suite.Equal(int64(defaultExpire.Seconds()), ttl, "incorrect TTL")
+	suite.GreaterOrEqual(ttl, expectedTTL-1, "incorrect TTL (too low)")
+	suite.LessOrEqual(ttl, expectedTTL, "incorrect TTL (too high)")
 
 	// Write another URL to the same key
 	key, err = suite.cache.SetLongUrl(suite.ctx, "short-url", "https://new-long.url")
@@ -66,20 +69,21 @@ func (suite *UrlTestSuite) TestSetLongUrl() {
 	// Make sure the TTL is still the default
 	ttl, err = suite.cache.client.TTL(suite.ctx, key)
 	suite.NoError(err)
-	suite.Equal(int64(defaultExpire.Seconds()), ttl, "incorrect TTL")
+	suite.GreaterOrEqual(ttl, expectedTTL-1, "incorrect TTL (too low)")
+	suite.LessOrEqual(ttl, expectedTTL, "incorrect TTL (too high)")
 
 	key2, err := suite.cache.SetLongUrl(suite.ctx, "short-url2", "https://another-long.url")
 	suite.NoError(err)
 	suite.Equal("long_url:short-url2", key2)
 
-	ttl2, err := suite.cache.client.TTL(suite.ctx, key)
+	ttl2, err := suite.cache.client.TTL(suite.ctx, key2)
 	suite.NoError(err)
-	suite.Equal(int64(defaultExpire.Seconds()), ttl2, "incorrect TTL")
+	suite.GreaterOrEqual(ttl2, expectedTTL-1, "incorrect TTL (too low)")
+	suite.LessOrEqual(ttl2, expectedTTL, "incorrect TTL (too high)")
 
 	resp, err := suite.cache.client.Exists(suite.ctx, []string{key, key2})
 	suite.NoError(err)
 	suite.Equal(int64(2), resp, "incorrect number of keys in cache")
-
 }
 
 func (suite *UrlTestSuite) TestGetLongUrl() {
