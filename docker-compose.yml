@@ -57,6 +57,9 @@ services:
         restart: unless-stopped
         ports:
             - "${VALKEY_PORT}:6379"
+        volumes:
+            - ./valkey.conf:/etc/valkey/valkey.conf
+        command: valkey-server /etc/valkey/valkey.conf
         networks:
             - app_network
 
