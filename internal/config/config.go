@@ -19,7 +19,7 @@ type Config struct {
 func Load() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal().Msgf("failed to load environment variables: %s", err)
+		log.Fatal().Err(err).Msg("failed to load environment variables")
 	}
 
 	config := &Config{}
