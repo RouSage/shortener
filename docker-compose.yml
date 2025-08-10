@@ -61,7 +61,7 @@ services:
             - ./valkey.conf:/etc/valkey/valkey.conf
         command: valkey-server /etc/valkey/valkey.conf
         healthcheck:
-            test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
+            test: ["CMD-SHELL", "valkey-cli", "ping"]
             interval: 5s
             timeout: 5s
             retries: 3
