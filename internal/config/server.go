@@ -37,12 +37,12 @@ func loadServerConfig() (Server, error) {
 
 	rps, err := getIntEnv("LIMITER_RPS")
 	if err != nil {
-		log.Warn().Int("defaultRPS", defaultRPS).Msg("LIMITER_RPS environment variables is not set, setting to default")
+		log.Warn().Int("defaultRPS", defaultRPS).Msg("LIMITER_RPS environment variable is not set, setting to default")
 		rps = defaultRPS
 	}
 	burst, err := getIntEnv("LIMITER_BURST")
 	if err != nil {
-		log.Warn().Int("defaultBurst", defaultBurst).Msg("LIMITER_BURST environment variables is not set, setting to default")
+		log.Warn().Int("defaultBurst", defaultBurst).Msg("LIMITER_BURST environment variable is not set, setting to default")
 		burst = defaultBurst
 	}
 
