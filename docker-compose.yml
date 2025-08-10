@@ -60,6 +60,12 @@ services:
         volumes:
             - ./valkey.conf:/etc/valkey/valkey.conf
         command: valkey-server /etc/valkey/valkey.conf
+        healthcheck:
+            test: ["CMD-SHELL", "valkey-cli ping | grep PONG"]
+            interval: 5s
+            timeout: 5s
+            retries: 3
+            start_period: 15s
         networks:
             - app_network
 
