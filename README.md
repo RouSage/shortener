@@ -28,17 +28,39 @@ make help
 
 ### Running the application
 
-Run the PostgreSQL container
+Set up Git hooks
 
 ```bash
-docker compose up -d db
+sh install-hooks.sh
+```
+
+Install dependencies
+
+```bash
+go mod tidy
+```
+
+Fill out `.env` file with the required environment variables
+
+```bash
+cp .env.example .env
+```
+
+Run the required services in Docker
+
+```bash
+docker compose up -d db valkey
 ```
 
 Run the application
 
 ```bash
 make run
+or
+make watch # run the app with live reload
 ```
+
+### Build/Run commands
 
 Build the application
 
