@@ -27,7 +27,10 @@ func New() *AppValidator {
 		}
 		return name
 	})
-	_ = validate.RegisterValidation("shortcode", ValidateShortCode)
+	err := validate.RegisterValidation("shortcode", ValidateShortCode)
+	if err != nil {
+		panic(fmt.Errorf("register shortcode validator: %w", err))
+	}
 
 	return &AppValidator{
 		validate: validate,

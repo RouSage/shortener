@@ -23,9 +23,9 @@ func TestValidateShortCode(t *testing.T) {
 		{name: "invalid shortcode", value: shortCode{Code: "short$%"}, expected: false},
 	}
 
+	validate := New()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			validate := New()
 			err := validate.Validate(tt.value)
 
 			errors := validate.FormatErrors(err)

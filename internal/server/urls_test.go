@@ -152,7 +152,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 			var actual repository.Url
 			err = json.NewDecoder(res.Body).Decode(&actual)
 			require.NoError(t, err, "error decoding response body")
-			assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short ULR length")
+			assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short URL length")
 			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
 			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
 		})
