@@ -67,11 +67,13 @@ func (suite *UrlTestSuite) TestCreateUrl() {
 	assert.NoError(t, err)
 	assert.Equal(t, "short-url", url.ID)
 	assert.Equal(t, "https://long.url", url.LongUrl)
+	assert.False(t, url.IsCustom)
 
-	url2, err := suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url"})
+	url2, err := suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true})
 	assert.NoError(t, err)
 	assert.Equal(t, "short-url2", url2.ID)
 	assert.Equal(t, "https://long.url", url2.LongUrl)
+	assert.True(t, url2.IsCustom)
 
 	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://another-long.url"})
 	if assert.Error(t, err) {

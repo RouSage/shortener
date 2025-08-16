@@ -2,13 +2,14 @@ package appvalidator
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type AppValidator struct {
-	validator *validator.Validate
+	validate *validator.Validate
 }
 
 type ValidationError struct {
@@ -17,13 +18,27 @@ type ValidationError struct {
 }
 
 func New() *AppValidator {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
+		name := strings.SplitN(field.Tag.Get("json"), ",", 2)[0]
+		// skip if tag key says it should be ignored
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
+	err := validate.RegisterValidation("shortcode", ValidateShortCode)
+	if err != nil {
+		panic(fmt.Errorf("register shortcode validator: %w", err))
+	}
+
 	return &AppValidator{
-		validator: validator.New(validator.WithRequiredStructEnabled()),
+		validate: validate,
 	}
 }
 
 func (av *AppValidator) Validate(i any) error {
-	if err := av.validator.Struct(i); err != nil {
+	if err := av.validate.Struct(i); err != nil {
 		return err
 	}
 
@@ -73,6 +88,8 @@ func (av *AppValidator) getErrorMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s must be exactly %s characters long", fe.Field(), fe.Param())
 	case "oneof":
 		return fmt.Sprintf("%s must be one of: %s", fe.Field(), fe.Param())
+	case "shortcode":
+		return "Short code cannot contain special characters"
 	default:
 		return fmt.Sprintf("%s is invalid", fe.Field())
 	}

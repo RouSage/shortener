@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE urls
+DROP COLUMN IF EXISTS is_custom;
+
+COMMIT;

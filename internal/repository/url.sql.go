@@ -10,41 +10,61 @@ import (
 )
 
 const createUrl = `-- name: CreateUrl :one
-INSERT INTO urls (id, long_url)
-VALUES ($1, $2)
-RETURNING id, long_url, created_at
+INSERT INTO
+  urls (id, long_url, is_custom)
+VALUES
+  ($1, $2, $3)
+RETURNING
+  id, long_url, created_at, is_custom
 `
 
 type CreateUrlParams struct {
-	ID      string `json:"id"`
-	LongUrl string `json:"longUrl"`
+	ID       string `json:"id"`
+	LongUrl  string `json:"longUrl"`
+	IsCustom bool   `json:"isCustom"`
 }
 
 // CreateUrl
 //
-//	INSERT INTO urls (id, long_url)
-//	VALUES ($1, $2)
-//	RETURNING id, long_url, created_at
+//	INSERT INTO
+//	  urls (id, long_url, is_custom)
+//	VALUES
+//	  ($1, $2, $3)
+//	RETURNING
+//	  id, long_url, created_at, is_custom
 func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, error) {
-	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl)
+	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl, arg.IsCustom)
 	var i Url
-	err := row.Scan(&i.ID, &i.LongUrl, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.LongUrl,
+		&i.CreatedAt,
+		&i.IsCustom,
+	)
 	return i, err
 }
 
 const getLongUrl = `-- name: GetLongUrl :one
-SELECT long_url
-  FROM urls
- WHERE id = $1
- LIMIT 1
+SELECT
+  long_url
+FROM
+  urls
+WHERE
+  id = $1
+LIMIT
+  1
 `
 
 // GetLongUrl
 //
-//	SELECT long_url
-//	  FROM urls
-//	 WHERE id = $1
-//	 LIMIT 1
+//	SELECT
+//	  long_url
+//	FROM
+//	  urls
+//	WHERE
+//	  id = $1
+//	LIMIT
+//	  1
 func (q *Queries) GetLongUrl(ctx context.Context, id string) (string, error) {
 	row := q.db.QueryRow(ctx, getLongUrl, id)
 	var long_url string

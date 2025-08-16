@@ -36,7 +36,7 @@ audit:
 .PHONY: test
 test:
 	echo "Testing..."
-	go test -v -race ./...
+	go test -race ./...
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover

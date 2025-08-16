@@ -31,9 +31,10 @@ func TestCreateShortURLHandler(t *testing.T) {
 		expectedStatus         int
 		expectedUrl            string
 		expectedShortUrlLength int
+		expectedIsCustom       bool
 	}{
-		{name: "valid URL", payload: map[string]string{"url": "https://example.com"}, expectedStatus: http.StatusCreated, expectedUrl: "https://example.com", expectedShortUrlLength: 8},
-		{name: "valid URL with www", payload: map[string]string{"url": "https://www.example.com"}, expectedStatus: http.StatusCreated, expectedUrl: "https://www.example.com", expectedShortUrlLength: 8},
+		{name: "valid URL", payload: map[string]string{"url": "https://example.com"}, expectedStatus: http.StatusCreated, expectedUrl: "https://example.com", expectedShortUrlLength: 8, expectedIsCustom: false},
+		{name: "valid URL with www", payload: map[string]string{"url": "https://www.example.com"}, expectedStatus: http.StatusCreated, expectedUrl: "https://www.example.com", expectedShortUrlLength: 8, expectedIsCustom: false},
 		{name: "invalid URL with www", payload: map[string]string{"url": "www.example.com"}, expectedStatus: http.StatusBadRequest},
 		{name: "invalid URL", payload: map[string]string{"url": "test"}, expectedStatus: http.StatusBadRequest},
 		{name: "invalid payload", payload: map[string]string{"notUrl": "test"}, expectedStatus: http.StatusBadRequest},
@@ -59,6 +60,7 @@ func TestCreateShortURLHandler(t *testing.T) {
 			require.NoError(t, err, "error decoding response body")
 			assert.Len(t, actual.ID, tt.expectedShortUrlLength, fmt.Sprintf("short URL should be %d characters long", tt.expectedShortUrlLength))
 			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
+			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
 		})
 	}
 
@@ -68,7 +70,7 @@ func TestCreateShortURLHandler(t *testing.T) {
 func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 
-	payload := map[string]string{"url": "https://example.com"}
+	payload := CreateShortUrlDTO{URL: "https://example.com"}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
 
@@ -86,7 +88,8 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	err = json.NewDecoder(resp1.Body).Decode(&actual1)
 	require.NoError(t, err, "error decoding response body")
 	assert.Len(t, actual1.ID, 8, "short URL ID should be 8 characters long")
-	assert.Equal(t, payload["url"], actual1.LongUrl, "long URL does not match")
+	assert.Equal(t, payload.URL, actual1.LongUrl, "long URL does not match")
+	assert.Equal(t, false, actual1.IsCustom, "isCustom does not match")
 
 	// Make a second request with the same URL
 	req2 := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
@@ -104,7 +107,56 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	require.NoError(t, err, "error decoding response body")
 	assert.Len(t, actual2.ID, 8, "short URL ID should be 8 characters long")
 	assert.NotEqual(t, actual1.ID, actual2.ID, "short URL IDs should be different")
-	assert.Equal(t, payload["url"], actual2.LongUrl, "long URL does not match")
+	assert.Equal(t, payload.URL, actual2.LongUrl, "long URL does not match")
+	assert.Equal(t, false, actual2.IsCustom, "isCustom does not match")
+
+	t.Cleanup(cleanup)
+}
+
+func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+
+	longUrl := "https://www.example.com"
+	tests := []struct {
+		name                string
+		payload             CreateShortUrlDTO
+		expectedStatus      int
+		expectedUrl         string
+		expectedShortUrlLen int
+		expectedIsCustom    bool
+	}{
+		{name: "valid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 12, expectedIsCustom: true},
+		{name: "duplicate short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusConflict},
+		{name: "too small short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "code"}, expectedStatus: http.StatusBadRequest},
+		{name: "too big short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code_1234567891"}, expectedStatus: http.StatusBadRequest},
+		{name: "invalid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code$&*"}, expectedStatus: http.StatusBadRequest},
+		// if not custom short code is provided, it will be generated, hence isCustom = false
+		{name: "empty short code", payload: CreateShortUrlDTO{URL: longUrl}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 8, expectedIsCustom: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := json.Marshal(tt.payload)
+			require.NoError(t, err, "could not marshal payload")
+
+			req := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+
+			// Assertions
+			err = s.CreateShortURLHandler(c)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			var actual repository.Url
+			err = json.NewDecoder(res.Body).Decode(&actual)
+			require.NoError(t, err, "error decoding response body")
+			assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short URL length")
+			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
+			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+		})
+	}
 
 	t.Cleanup(cleanup)
 }
@@ -251,7 +303,7 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 }
 
 func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string) repository.Url {
-	payload := map[string]string{"url": url}
+	payload := CreateShortUrlDTO{URL: url}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
 
