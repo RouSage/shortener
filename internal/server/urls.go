@@ -39,15 +39,16 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		}
 
 		newUrl, err = rep.CreateUrl(c.Request().Context(), repository.CreateUrlParams{
-			ID:      shortUrl,
-			LongUrl: dto.URL,
+			ID:       shortUrl,
+			LongUrl:  dto.URL,
+			IsCustom: false,
 		})
 		if err == nil {
 			break
 		}
 
 		if rep.IsDuplicateKeyError(err) {
-			s.logger.Warn().Err(err).Int("attemtpt", attempt+1).Msg("Short URL collision detected, retrying")
+			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
 		} else {
 			break
