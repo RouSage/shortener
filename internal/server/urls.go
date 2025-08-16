@@ -33,6 +33,8 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		err      error
 	)
 
+	// Use a custom short code if provided,
+	// otherwise generate a random one
 	if dto.ShortCode != "" {
 		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       dto.ShortCode,
@@ -42,7 +44,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 
 		if err != nil {
 			if rep.IsDuplicateKeyError(err) {
-				return c.JSON(http.StatusBadRequest, map[string]any{
+				return c.JSON(http.StatusConflict, map[string]any{
 					"message": "Validation failed",
 					"errors": []appvalidator.ValidationError{
 						{Field: "short_code", Message: "Short code is not available"},

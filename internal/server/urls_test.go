@@ -113,6 +113,54 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	t.Cleanup(cleanup)
 }
 
+func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+
+	longUrl := "https://www.example.com"
+	tests := []struct {
+		name                string
+		payload             CreateShortUrlDTO
+		expectedStatus      int
+		expectedUrl         string
+		expectedShortUrlLen int
+		expectedIsCustom    bool
+	}{
+		{name: "valid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 12, expectedIsCustom: true},
+		{name: "duplicate short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusConflict},
+		{name: "too small short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "code"}, expectedStatus: http.StatusBadRequest},
+		{name: "too big short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code_1234567891"}, expectedStatus: http.StatusBadRequest},
+		{name: "invalid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code$&*"}, expectedStatus: http.StatusBadRequest},
+		// if not custom short code is provided, it will be generated, hence isCustom = false
+		{name: "empty short code", payload: CreateShortUrlDTO{URL: longUrl}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 8, expectedIsCustom: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := json.Marshal(tt.payload)
+			require.NoError(t, err, "could not marshal payload")
+
+			req := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+
+			// Assertions
+			err = s.CreateShortURLHandler(c)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			var actual repository.Url
+			err = json.NewDecoder(res.Body).Decode(&actual)
+			require.NoError(t, err, "error decoding response body")
+			assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short ULR length")
+			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
+			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
 func TestGetLongUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	createdUrl := createShortUrl(t, s, e, "https://example.com")
