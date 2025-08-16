@@ -8,7 +8,7 @@ import (
 )
 
 type AppValidator struct {
-	validator *validator.Validate
+	validate *validator.Validate
 }
 
 type ValidationError struct {
@@ -17,13 +17,16 @@ type ValidationError struct {
 }
 
 func New() *AppValidator {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	_ = validate.RegisterValidation("shortcode", ValidateShortCode)
+
 	return &AppValidator{
-		validator: validator.New(validator.WithRequiredStructEnabled()),
+		validate: validate,
 	}
 }
 
 func (av *AppValidator) Validate(i any) error {
-	if err := av.validator.Struct(i); err != nil {
+	if err := av.validate.Struct(i); err != nil {
 		return err
 	}
 
@@ -73,6 +76,8 @@ func (av *AppValidator) getErrorMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s must be exactly %s characters long", fe.Field(), fe.Param())
 	case "oneof":
 		return fmt.Sprintf("%s must be one of: %s", fe.Field(), fe.Param())
+	case "shortcode":
+		return "Short code cannot contain special characters"
 	default:
 		return fmt.Sprintf("%s is invalid", fe.Field())
 	}
