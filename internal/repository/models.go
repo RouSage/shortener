@@ -12,4 +12,5 @@ type Url struct {
 	ID        string    `json:"id"`
 	LongUrl   string    `json:"longUrl"`
 	CreatedAt time.Time `json:"createdAt"`
+	IsCustom  bool      `json:"isCustom"`
 }

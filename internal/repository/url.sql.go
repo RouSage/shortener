@@ -12,7 +12,7 @@ import (
 const createUrl = `-- name: CreateUrl :one
 INSERT INTO urls (id, long_url)
 VALUES ($1, $2)
-RETURNING id, long_url, created_at
+RETURNING id, long_url, created_at, is_custom
 `
 
 type CreateUrlParams struct {
@@ -24,11 +24,16 @@ type CreateUrlParams struct {
 //
 //	INSERT INTO urls (id, long_url)
 //	VALUES ($1, $2)
-//	RETURNING id, long_url, created_at
+//	RETURNING id, long_url, created_at, is_custom
 func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, error) {
 	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl)
 	var i Url
-	err := row.Scan(&i.ID, &i.LongUrl, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.LongUrl,
+		&i.CreatedAt,
+		&i.IsCustom,
+	)
 	return i, err
 }
 
