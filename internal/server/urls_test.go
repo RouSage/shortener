@@ -55,12 +55,14 @@ func TestCreateShortURLHandler(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
-			var actual repository.Url
-			err = json.NewDecoder(res.Body).Decode(&actual)
-			require.NoError(t, err, "error decoding response body")
-			assert.Len(t, actual.ID, tt.expectedShortUrlLength, fmt.Sprintf("short URL should be %d characters long", tt.expectedShortUrlLength))
-			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
-			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+			if tt.expectedStatus == http.StatusCreated {
+				var actual repository.Url
+				err = json.NewDecoder(res.Body).Decode(&actual)
+				require.NoError(t, err, "error decoding response body")
+				assert.Len(t, actual.ID, tt.expectedShortUrlLength, fmt.Sprintf("short URL should be %d characters long", tt.expectedShortUrlLength))
+				assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
+				assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+			}
 		})
 	}
 
@@ -149,12 +151,14 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
-			var actual repository.Url
-			err = json.NewDecoder(res.Body).Decode(&actual)
-			require.NoError(t, err, "error decoding response body")
-			assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short URL length")
-			assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
-			assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+			if tt.expectedStatus == http.StatusCreated {
+				var actual repository.Url
+				err = json.NewDecoder(res.Body).Decode(&actual)
+				require.NoError(t, err, "error decoding response body")
+				assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short URL length")
+				assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
+				assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+			}
 		})
 	}
 

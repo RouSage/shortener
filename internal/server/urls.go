@@ -46,8 +46,8 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 			if rep.IsDuplicateKeyError(err) {
 				return c.JSON(http.StatusConflict, map[string]any{
 					"message": "Validation failed",
-					"errors": []appvalidator.ValidationError{
-						{Field: "short_code", Message: "Short code is not available"},
+					"errors": appvalidator.ValidationError{
+						"short_code": "Short code is not available",
 					},
 				})
 			}

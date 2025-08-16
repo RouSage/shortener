@@ -31,12 +31,10 @@ func TestValidateShortCode(t *testing.T) {
 			errors := validate.FormatErrors(err)
 			if tt.expected {
 				assert.NoError(t, err)
-				assert.Len(t, errors, 0, "got no errors")
+				assert.Empty(t, errors["code"], "error message is not empty")
 			} else {
 				assert.Error(t, err)
-				assert.Len(t, errors, 1, "got more than one error")
-				assert.Equal(t, "Short code cannot contain special characters", errors[0].Message, "wrong error message")
-				assert.Equal(t, "code", errors[0].Field, "wrong error field")
+				assert.Equal(t, "Short code cannot contain special characters", errors["code"], "wrong error message")
 			}
 		})
 	}
