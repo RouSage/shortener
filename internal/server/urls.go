@@ -4,13 +4,15 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
 )
 
 type CreateShortUrlDTO struct {
-	URL string `json:"url" validate:"required,http_url"`
+	ShortCode string `json:"short_code" validate:"omitempty,min=5,max=16,shortcode"`
+	URL       string `json:"url" validate:"required,http_url"`
 }
 
 func (s *Server) CreateShortURLHandler(c echo.Context) error {
@@ -23,22 +25,46 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		return s.failedValidationError(c, err)
 	}
 
-	const maxRetries = 3
 	var (
+		ctx      = c.Request().Context()
+		rep      = repository.New(s.db)
 		shortUrl string
 		newUrl   repository.Url
 		err      error
 	)
 
-	rep := repository.New(s.db)
+	if dto.ShortCode != "" {
+		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
+			ID:       dto.ShortCode,
+			LongUrl:  dto.URL,
+			IsCustom: true,
+		})
 
+		if err != nil {
+			if rep.IsDuplicateKeyError(err) {
+				return c.JSON(http.StatusBadRequest, map[string]any{
+					"message": "Validation failed",
+					"errors": []appvalidator.ValidationError{
+						{Field: "short_code", Message: "Short code is not available"},
+					},
+				})
+			}
+
+			s.logger.Error().Err(err).Msg("failed to create custom short url")
+			return echo.ErrInternalServerError
+		}
+
+		return c.JSON(http.StatusCreated, newUrl)
+	}
+
+	const maxRetries = 3
 	for attempt := range maxRetries {
 		shortUrl, err = generator.ShortUrl(s.cfg.App.ShortUrlLength)
 		if err != nil {
 			break
 		}
 
-		newUrl, err = rep.CreateUrl(c.Request().Context(), repository.CreateUrlParams{
+		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       shortUrl,
 			LongUrl:  dto.URL,
 			IsCustom: false,
