@@ -12,10 +12,7 @@ type AppValidator struct {
 	validate *validator.Validate
 }
 
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-}
+type ValidationError map[string]string
 
 func New() *AppValidator {
 	validate := validator.New(validator.WithRequiredStructEnabled())
@@ -45,15 +42,16 @@ func (av *AppValidator) Validate(i any) error {
 	return nil
 }
 
-func (av *AppValidator) FormatErrors(err error) []ValidationError {
-	var validationErrors []ValidationError
+func (av *AppValidator) FormatErrors(err error) ValidationError {
+	validationErrors := make(ValidationError)
 
 	if validationErrs, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrs {
-			validationErrors = append(validationErrors, ValidationError{
-				Field:   av.getFieldName(e),
-				Message: av.getErrorMessage(e),
-			})
+			field := av.getFieldName(e)
+			if validationErrors[field] != "" {
+				continue
+			}
+			validationErrors[field] = av.getErrorMessage(e)
 		}
 	}
 
