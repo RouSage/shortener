@@ -10,6 +10,7 @@ import (
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type CreateShortUrlDTO struct {
@@ -89,7 +90,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		}
 
 		if rep.IsDuplicateKeyError(err) {
-			span.AddEvent("Short URL collision detected, retrying")
+			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
 			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
 		} else {
