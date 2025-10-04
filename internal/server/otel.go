@@ -10,6 +10,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
+var tracer = otel.Tracer("github.com/rousage/shortener")
+
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
 	var err error
