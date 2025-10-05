@@ -32,6 +32,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	if err := c.Validate(dto); err != nil {
 		return s.failedValidationError(c, err)
 	}
+	span.SetAttributes(attribute.String("url", dto.URL))
 
 	var (
 		rep      = repository.New(s.db)
@@ -40,7 +41,6 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		err      error
 	)
 
-	span.SetAttributes(attribute.String("url", dto.URL))
 	// Use a custom short code if provided,
 	// otherwise generate a random one
 	if dto.ShortCode != "" {
@@ -115,19 +115,25 @@ type GetLongUrlParams struct {
 }
 
 func (s *Server) GetLongUrlHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
+	defer span.End()
+
 	params := new(GetLongUrlParams)
 	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
 		return s.failedValidationError(c, err)
 	}
+	span.SetAttributes(attribute.String("code", params.Code))
 
-	ctx := c.Request().Context()
 	cache := cache.New(s.cache)
 
 	longUrl, err := cache.GetLongUrl(ctx, params.Code)
 	if err != nil {
+		span.AddEvent("failed to get long url from cache")
 		s.logger.Warn().Err(err).Str("code", params.Code).Msg("failed to get long url from cache")
 	}
 	if longUrl != "" {
@@ -139,6 +145,9 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	rep := repository.New(s.db)
 	longUrl, err = rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to get long url")
+		span.RecordError(err)
+
 		if rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Str("code", params.Code).Msg("long url not found")
 			return echo.ErrNotFound
@@ -149,6 +158,7 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	}
 
 	if key, err := cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
+		span.AddEvent("failed to cache long url", trace.WithAttributes(attribute.String("key", key)))
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
 	}
 
