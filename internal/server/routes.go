@@ -15,7 +15,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
 
-	e.Use(otelecho.Middleware("my-server"))
+	e.Use(otelecho.Middleware(serviceName.Value.AsString()))
 	e.Use(middleware.RequestID())
 
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{

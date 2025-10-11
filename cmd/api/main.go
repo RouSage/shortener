@@ -11,6 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/server"
 )
 
@@ -41,7 +42,13 @@ func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan boo
 
 func main() {
 	ctx := context.Background()
-	srv := server.New()
+
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not load config")
+	}
+
+	srv := server.New(cfg)
 
 	otelShutdown, err := server.SetupOTelSDK(ctx)
 	if err != nil {

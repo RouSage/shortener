@@ -5,12 +5,17 @@ import (
 	"errors"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
-var tracer = otel.Tracer("github.com/rousage/shortener")
+var (
+	tracer      = otel.Tracer("github.com/rousage/shortener")
+	serviceName = semconv.ServiceNameKey.String("url-shortener")
+)
 
 func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
@@ -37,7 +42,13 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	tracerProvider, err := newTracerProvider()
+	res, err := resource.New(ctx, resource.WithAttributes(serviceName))
+	if err != nil {
+		handleErr(err)
+		return shutdown, err
+	}
+
+	tracerProvider, err := newTracerProvider(ctx, res)
 	if err != nil {
 		handleErr(err)
 		return shutdown, err
@@ -55,13 +66,17 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTracerProvider() (*trace.TracerProvider, error) {
-	traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+func newTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL("http://localhost:4317"))
 	if err != nil {
 		return nil, err
 	}
 
-	tracerProvider := trace.NewTracerProvider(trace.WithBatcher(traceExporter))
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithBatcher(traceExporter),
+	)
 
 	return tracerProvider, nil
 }

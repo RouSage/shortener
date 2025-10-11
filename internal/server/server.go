@@ -11,7 +11,6 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	glide "github.com/valkey-io/valkey-glide/go/v2"
 )
 
@@ -22,12 +21,7 @@ type Server struct {
 	cache  *glide.Client
 }
 
-func New() *http.Server {
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not load config")
-	}
-
+func New(cfg *config.Config) *http.Server {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 	zerolog.TimestampFieldName = "timestamp"
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)

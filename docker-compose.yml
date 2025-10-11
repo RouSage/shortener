@@ -51,7 +51,6 @@ services:
             start_period: 15s
         networks:
             - app_network
-
     valkey:
         image: valkey/valkey:latest
         restart: unless-stopped
@@ -66,6 +65,19 @@ services:
             timeout: 5s
             retries: 3
             start_period: 15s
+        networks:
+            - app_network
+    jaeger:
+        image: cr.jaegertracing.io/jaegertracing/jaeger:latest
+        container_name: jaeger
+        restart: unless-stopped
+        environment:
+            COLLECTOR_OTLP_ENABLED: "true"
+        ports:
+            - "16686:16686"
+            - "4317:4317"
+            - "4318:4318"
+            - "5778:5778"
         networks:
             - app_network
 
