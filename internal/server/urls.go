@@ -75,7 +75,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	span.AddEvent("attempting to generate short url")
 	const maxRetries = 3
 	for attempt := range maxRetries {
-		shortUrl, err = generator.ShortUrl(s.cfg.App.ShortUrlLength)
+		shortUrl, err = generator.ShortUrl(ctx, s.cfg.App.ShortUrlLength)
 		if err != nil {
 			break
 		}
