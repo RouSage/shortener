@@ -8,6 +8,9 @@ import (
 	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type CreateShortUrlDTO struct {
@@ -16,17 +19,22 @@ type CreateShortUrlDTO struct {
 }
 
 func (s *Server) CreateShortURLHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "CreateShortURLHandler")
+	defer span.End()
+
 	dto := new(CreateShortUrlDTO)
 
 	if err := c.Bind(dto); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(dto); err != nil {
 		return s.failedValidationError(c, err)
 	}
+	span.SetAttributes(attribute.String("url", dto.URL))
 
 	var (
-		ctx      = c.Request().Context()
 		rep      = repository.New(s.db)
 		shortUrl string
 		newUrl   repository.Url
@@ -36,6 +44,8 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	// Use a custom short code if provided,
 	// otherwise generate a random one
 	if dto.ShortCode != "" {
+		span.SetAttributes(attribute.String("short_code", dto.ShortCode))
+
 		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       dto.ShortCode,
 			LongUrl:  dto.URL,
@@ -43,6 +53,9 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		})
 
 		if err != nil {
+			span.SetStatus(codes.Error, "failed to create short url with custom short code")
+			span.RecordError(err)
+
 			if rep.IsDuplicateKeyError(err) {
 				return c.JSON(http.StatusConflict, map[string]any{
 					"message": "Validation failed",
@@ -59,6 +72,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		return c.JSON(http.StatusCreated, newUrl)
 	}
 
+	span.AddEvent("attempting to generate short url")
 	const maxRetries = 3
 	for attempt := range maxRetries {
 		shortUrl, err = generator.ShortUrl(s.cfg.App.ShortUrlLength)
@@ -76,6 +90,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 		}
 
 		if rep.IsDuplicateKeyError(err) {
+			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
 			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
 		} else {
@@ -84,9 +99,13 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	}
 
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to generate short url")
+		span.RecordError(err)
 		s.logger.Error().Err(err).Int("retries", maxRetries).Msg("failed to generate short url")
 		return echo.ErrInternalServerError
 	}
+
+	span.AddEvent("short url generated")
 
 	return c.JSON(http.StatusCreated, newUrl)
 }
@@ -96,19 +115,25 @@ type GetLongUrlParams struct {
 }
 
 func (s *Server) GetLongUrlHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
+	defer span.End()
+
 	params := new(GetLongUrlParams)
 	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
 		return s.failedValidationError(c, err)
 	}
+	span.SetAttributes(attribute.String("code", params.Code))
 
-	ctx := c.Request().Context()
 	cache := cache.New(s.cache)
 
 	longUrl, err := cache.GetLongUrl(ctx, params.Code)
 	if err != nil {
+		span.AddEvent("failed to get long url from cache")
 		s.logger.Warn().Err(err).Str("code", params.Code).Msg("failed to get long url from cache")
 	}
 	if longUrl != "" {
@@ -120,6 +145,9 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	rep := repository.New(s.db)
 	longUrl, err = rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to get long url")
+		span.RecordError(err)
+
 		if rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Str("code", params.Code).Msg("long url not found")
 			return echo.ErrNotFound
@@ -130,6 +158,7 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	}
 
 	if key, err := cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
+		span.AddEvent("failed to cache long url", trace.WithAttributes(attribute.String("key", key)))
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
 	}
 

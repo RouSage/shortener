@@ -8,7 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - Docker
 - sqlc
 - golangci-lint
