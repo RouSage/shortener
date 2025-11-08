@@ -19,7 +19,7 @@ func ShortUrl(ctx context.Context, length int) (string, error) {
 	defer span.End()
 
 	if length <= 0 {
-		span.AddEvent("invalid length", trace.WithAttributes(attribute.Int("length", length)))
+		span.AddEvent("invalid length, using default", trace.WithAttributes(attribute.Int("length", length)), trace.WithAttributes(attribute.Int("default", defaultLength)))
 		length = defaultLength
 	}
 
