@@ -3,9 +3,9 @@ module github.com/rousage/shortener
 go 1.25.1
 
 require (
+	github.com/exaring/otelpgx v0.9.3
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
-	github.com/jackc/pgx-zerolog v0.0.0-20230315001418-f978528409eb
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4

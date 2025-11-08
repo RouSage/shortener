@@ -1,12 +1,15 @@
 package generator
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestShortUrl(t *testing.T) {
+	ctx := context.Background()
+
 	tests := []struct {
 		name           string
 		length         int
@@ -19,7 +22,7 @@ func TestShortUrl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			shortUrl, err := ShortUrl(tt.length)
+			shortUrl, err := ShortUrl(ctx, tt.length)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedLength, len(shortUrl))

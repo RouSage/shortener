@@ -7,7 +7,6 @@ import (
 
 	"github.com/valkey-io/valkey-glide/go/v2/options"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -15,9 +14,10 @@ var (
 )
 
 func (c *Cache) SetLongUrl(ctx context.Context, code, longUrl string) (key string, err error) {
-	span := trace.SpanFromContext(ctx)
-	key = c.getUrlKey(code)
+	ctx, span := tracer.Start(ctx, "cache.SetLongUrl")
+	defer span.End()
 
+	key = c.getUrlKey(code)
 	span.SetAttributes(attribute.String("key", key))
 
 	opts := options.NewSetOptions().SetExpiry(options.NewExpiryIn(defaultExpire))
@@ -30,15 +30,20 @@ func (c *Cache) SetLongUrl(ctx context.Context, code, longUrl string) (key strin
 }
 
 func (c *Cache) GetLongUrl(ctx context.Context, code string) (string, error) {
-	span := trace.SpanFromContext(ctx)
-	key := c.getUrlKey(code)
+	ctx, span := tracer.Start(ctx, "cache.GetLongUrl")
+	defer span.End()
 
+	key := c.getUrlKey(code)
 	span.SetAttributes(attribute.String("key", key))
 
 	resp, err := c.client.Get(ctx, key)
 	if err != nil {
 		span.RecordError(err)
 		return "", err
+	}
+
+	if resp.Value() == "" {
+		span.AddEvent("long url not found in cache")
 	}
 
 	return resp.Value(), nil

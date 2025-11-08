@@ -7,7 +7,10 @@ import (
 	"github.com/rs/zerolog"
 	glide "github.com/valkey-io/valkey-glide/go/v2"
 	cacheConfig "github.com/valkey-io/valkey-glide/go/v2/config"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("github.com/rousage/shortener/cache")
 
 func Connect(logger zerolog.Logger, cfg config.Cache) *glide.Client {
 	clientCfg := cacheConfig.NewClientConfiguration().WithAddress(&cacheConfig.NodeAddress{
