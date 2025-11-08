@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rousage/shortener/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -17,7 +18,7 @@ var (
 	serviceName = semconv.ServiceNameKey.String("url-shortener")
 )
 
-func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
+func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
 	var err error
 
@@ -48,7 +49,7 @@ func SetupOTelSDK(ctx context.Context) (func(context.Context) error, error) {
 		return shutdown, err
 	}
 
-	tracerProvider, err := newTracerProvider(ctx, res)
+	tracerProvider, err := newTracerProvider(ctx, res, cfg.TracesEndpoint)
 	if err != nil {
 		handleErr(err)
 		return shutdown, err
@@ -66,8 +67,8 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
-	traceExporter, err := otlptracegrpc.New(ctx)
+func newTracerProvider(ctx context.Context, res *resource.Resource, endpoint string) (*sdktrace.TracerProvider, error) {
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpoint))
 	if err != nil {
 		return nil, err
 	}
