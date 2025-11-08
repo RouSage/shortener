@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/exaring/otelpgx"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	zerologadapter "github.com/jackc/pgx-zerolog"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rs/zerolog"
 )
@@ -31,12 +30,9 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 	config.MaxConns = 30
 	config.MinIdleConns = 5
 	config.MaxConnLifetimeJitter = 5 * time.Minute
-	config.ConnConfig.Tracer = &tracelog.TraceLog{
-		Logger:   zerologadapter.NewLogger(logger),
-		LogLevel: tracelog.LogLevelTrace,
-	}
+	config.ConnConfig.Tracer = otelpgx.NewTracer()
 
-	db, err := pgxpool.NewWithConfig(context.Background(), config)
+	conn, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create DB pool")
 	}
@@ -46,12 +42,17 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 		logger.Fatal().Err(err).Msg("failed to migrate DB")
 	}
 
-	err = db.Ping(context.Background())
+	err = conn.Ping(context.Background())
 	if err != nil {
-		logger.Fatal().Err(err).Msgf("failed to ping DB")
+		logger.Fatal().Err(err).Msg("failed to ping DB")
 	}
 
-	return db
+	err = otelpgx.RecordStats(conn, otelpgx.WithMinimumReadDBStatsInterval(5*time.Second))
+	if err != nil {
+		logger.Fatal().Err(err).Msg("unable to record database stats")
+	}
+
+	return conn
 }
 
 func migrateDB(connString string) error {
