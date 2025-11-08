@@ -14,6 +14,7 @@ type Config struct {
 	Database Database
 	Cache    Cache
 	Server   Server
+	Otel     Otel
 }
 
 func Load() (*Config, error) {
@@ -42,6 +43,11 @@ func Load() (*Config, error) {
 	config.Server, err = loadServerConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load server config: %w", err)
+	}
+
+	config.Otel, err = loadOtelConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load otel config: %w", err)
 	}
 
 	return config, nil
