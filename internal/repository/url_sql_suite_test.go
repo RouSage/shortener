@@ -108,6 +108,21 @@ func (suite *UrlTestSuite) TestGetLongUrl() {
 	assert.Equal(t, "https://long.url", longUrl)
 }
 
+func (suite *UrlTestSuite) TestDeleteShortUrl() {
+	t := suite.T()
+
+	rowsAffected, err := suite.queries.DeleteUrl(suite.ctx, "short-url")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), rowsAffected)
+
+	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"})
+	assert.NoError(t, err)
+
+	rowsAffected, err = suite.queries.DeleteUrl(suite.ctx, "short-url")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), rowsAffected)
+}
+
 func TestUrlTestSuite(t *testing.T) {
 	suite.Run(t, new(UrlTestSuite))
 }
