@@ -15,3 +15,8 @@ WHERE
   id = $1
 LIMIT
   1;
+
+-- name: DeleteUrl :execrows
+DELETE FROM urls
+WHERE
+  id = $1;
