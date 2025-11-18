@@ -93,6 +93,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	e.POST("/urls", s.CreateShortURLHandler)
 	e.GET("/urls/:code", s.GetLongUrlHandler)
+	e.DELETE("/urls/:code", s.DeletShortUrlHandler)
 
 	return e
 }

@@ -263,6 +263,54 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 	t.Cleanup(cleanup)
 }
 
+func TestDeleteShortUrlHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	createdUrl := createShortUrl(t, s, e, "https://example.com")
+
+	tests := []struct {
+		name           string
+		code           string
+		expectedStatus int
+		expectedCache  string
+	}{
+		{name: "non-existent code", code: "non-existent", expectedStatus: http.StatusNotFound},
+		{name: "successful delete", code: createdUrl.ID, expectedStatus: http.StatusNoContent},
+		{name: "nothing to delete", code: createdUrl.ID, expectedStatus: http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/urls/%s", tt.code), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+			c.SetPath("/urls/:code")
+			c.SetParamNames("code")
+			c.SetParamValues(tt.code)
+
+			// Assertions
+			err := s.DeletShortUrlHandler(c)
+			if err != nil {
+				switch tt.expectedStatus {
+				case http.StatusNotFound:
+					assert.Equal(t, echo.ErrNotFound, err)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				urlCache := cache.New(s.cache)
+				actualCache, err := urlCache.GetLongUrl(c.Request().Context(), tt.code)
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
+			}
+
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
 func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	ctx := context.Background()
 	logger := zerolog.New(io.Discard)

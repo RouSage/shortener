@@ -109,6 +109,26 @@ func (suite *UrlTestSuite) TestGetLongUrl() {
 	suite.Equal("https://another-long.url", longUrl, "long URL is not correct for existing cache entry")
 }
 
+func (suite *UrlTestSuite) TestDeleteLongUrl() {
+	code := "short-url"
+
+	removedKeys, err := suite.cache.DeleteLongUrl(suite.ctx, code)
+	suite.NoError(err)
+	suite.Empty(removedKeys, "expected to delete nothing, but deleted actual keys")
+
+	_, err = suite.cache.SetLongUrl(suite.ctx, code, "https://long.url")
+	suite.NoError(err)
+
+	removedKeys, err = suite.cache.DeleteLongUrl(suite.ctx, code)
+	suite.NoError(err)
+	suite.Equal(int64(1), removedKeys, "expected to delete 1 key")
+
+	// Make sure the deletion of the same key is idempotent
+	removedKeys, err = suite.cache.DeleteLongUrl(suite.ctx, code)
+	suite.NoError(err)
+	suite.Empty(removedKeys, "expected to delete nothing the second time")
+}
+
 func TestUrlTestSuite(t *testing.T) {
 	suite.Run(t, new(UrlTestSuite))
 }
