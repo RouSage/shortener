@@ -166,3 +166,47 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 		"longUrl": longUrl,
 	})
 }
+
+type DeleteShortUrlParams struct {
+	GetLongUrlParams
+}
+
+func (s *Server) DeletShortUrlHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "DeleteShortUrlHandler")
+	defer span.End()
+
+	params := new(DeleteShortUrlParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("code", params.Code))
+
+	rep := repository.New(s.db)
+	cache := cache.New(s.cache)
+
+	rowsAffected, err := rep.DeleteUrl(ctx, params.Code)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to delete short url")
+		span.RecordError(err)
+
+		s.logger.Error().Err(err).Str("code", params.Code).Msg("failed to delete short url")
+		return echo.ErrInternalServerError
+	}
+	if rowsAffected == 0 {
+		span.AddEvent("short url not found", trace.WithAttributes(attribute.String("code", params.Code)))
+		s.logger.Warn().Str("code", params.Code).Msg("short url not found")
+		return echo.ErrNotFound
+	}
+
+	if removedKeys, err := cache.DeleteLongUrl(ctx, params.Code); err != nil {
+		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
+		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
