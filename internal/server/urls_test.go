@@ -243,8 +243,7 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 			c.SetParamValues(tt.code)
 
 			// Assertions
-			urlCache := cache.New(s.cache)
-			actualCache, err := urlCache.GetLongUrl(c.Request().Context(), tt.code)
+			actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
 
@@ -299,8 +298,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
 
-				urlCache := cache.New(s.cache)
-				actualCache, err := urlCache.GetLongUrl(c.Request().Context(), tt.code)
+				actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
 			}
@@ -340,7 +338,7 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 		logger: logger,
 		cfg:    cfg,
 		db:     db,
-		cache:  cacheClient,
+		cache:  cache.New(cacheClient),
 	}
 
 	cleanup := func() {
