@@ -5,7 +5,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
-	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
@@ -129,9 +128,7 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
 
-	cache := cache.New(s.cache)
-
-	longUrl, err := cache.GetLongUrl(ctx, params.Code)
+	longUrl, err := s.cache.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		span.AddEvent("failed to get long url from cache")
 		s.logger.Warn().Err(err).Str("code", params.Code).Msg("failed to get long url from cache")
@@ -157,7 +154,7 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	if key, err := cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
+	if key, err := s.cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
 		span.AddEvent("failed to cache long url", trace.WithAttributes(attribute.String("key", key)))
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
 	}
@@ -187,7 +184,6 @@ func (s *Server) DeletShortUrlHandler(c echo.Context) error {
 	span.SetAttributes(attribute.String("code", params.Code))
 
 	rep := repository.New(s.db)
-	cache := cache.New(s.cache)
 
 	rowsAffected, err := rep.DeleteUrl(ctx, params.Code)
 	if err != nil {
@@ -203,7 +199,7 @@ func (s *Server) DeletShortUrlHandler(c echo.Context) error {
 		return echo.ErrNotFound
 	}
 
-	if removedKeys, err := cache.DeleteLongUrl(ctx, params.Code); err != nil {
+	if removedKeys, err := s.cache.DeleteLongUrl(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
 	}

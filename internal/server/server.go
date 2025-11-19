@@ -11,14 +11,13 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rs/zerolog"
-	glide "github.com/valkey-io/valkey-glide/go/v2"
 )
 
 type Server struct {
 	cfg    *config.Config
 	logger zerolog.Logger
 	db     *pgxpool.Pool
-	cache  *glide.Client
+	cache  *cache.Cache
 }
 
 func New(cfg *config.Config) *http.Server {
@@ -29,11 +28,13 @@ func New(cfg *config.Config) *http.Server {
 		logger = logger.Level(zerolog.InfoLevel)
 	}
 
+	cacheClient := cache.Connect(logger, cfg.Cache)
+
 	srv := &Server{
 		cfg:    cfg,
 		logger: logger,
 		db:     database.Connect(logger, cfg.Database),
-		cache:  cache.Connect(logger, cfg.Cache),
+		cache:  cache.New(cacheClient),
 	}
 
 	// Declare Server config
