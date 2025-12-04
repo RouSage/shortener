@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	App      App
+	Auth     Auth
 	Database Database
 	Cache    Cache
 	Server   Server
@@ -28,6 +29,11 @@ func Load() (*Config, error) {
 	config.App, err = loadAppConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app config: %w", err)
+	}
+
+	config.Auth, err = loadAuthConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load auth config: %w", err)
 	}
 
 	config.Database, err = loadDatabaseConfig()
