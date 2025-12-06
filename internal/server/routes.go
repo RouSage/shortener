@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"github.com/rousage/shortener/internal/auth"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
 )
@@ -87,6 +88,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+
+	e.Use(authMw.Authenticate)
 
 	e.GET("/", s.HelloWorldHandler)
 	e.GET("/health", s.healthHandler)
