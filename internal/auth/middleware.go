@@ -62,11 +62,21 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 		tokenInfo, err := jwtValidator.ValidateToken(c.Request().Context(), token)
 		if err != nil {
 			// TODO: add tracing
-			fmt.Println(err)
 			return echo.ErrUnauthorized
 		}
 
 		c.Set(string(ClaimsContextKey), tokenInfo)
+
+		return next(c)
+	}
+}
+
+func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		userID, ok := GetUserID(c)
+		if !ok || userID == "" {
+			return echo.ErrUnauthorized
+		}
 
 		return next(c)
 	}

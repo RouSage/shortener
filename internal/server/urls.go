@@ -33,11 +33,6 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("url", dto.URL))
 
-	// token := c.Get(string(auth.ClaimsContextKey)).(*validator.ValidatedClaims)
-
-	// claims := token.CustomClaims.(*auth.CustomClaims)
-	// fmt.Println(token.RegisteredClaims.Subject)
-
 	var (
 		rep      = repository.New(s.db)
 		shortUrl string

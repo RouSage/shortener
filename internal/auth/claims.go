@@ -4,6 +4,9 @@ import (
 	"context"
 	"slices"
 	"strings"
+
+	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/labstack/echo/v4"
 )
 
 type contextKey string
@@ -26,4 +29,22 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 func (c CustomClaims) HasScope(expectedScope string) bool {
 	result := strings.Split(c.Scope, " ")
 	return slices.Contains(result, expectedScope)
+}
+
+func GetUserID(c echo.Context) (string, bool) {
+	claims := getClaimsFromContext(c)
+	if claims == nil {
+		return "", false
+	}
+
+	return claims.RegisteredClaims.Subject, true
+}
+
+func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {
+	claims, ok := c.Get(string(ClaimsContextKey)).(*validator.ValidatedClaims)
+	if !ok || claims == nil {
+		return nil
+	}
+
+	return claims
 }

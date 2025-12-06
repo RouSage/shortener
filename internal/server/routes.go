@@ -90,7 +90,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
-
 	e.Use(authMw.Authenticate)
 
 	e.GET("/", s.HelloWorldHandler)
@@ -98,7 +97,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	e.POST("/urls", s.CreateShortURLHandler)
 	e.GET("/urls/:code", s.GetLongUrlHandler)
-	e.DELETE("/urls/:code", s.DeletShortUrlHandler)
+	e.DELETE("/urls/:code", s.DeletShortUrlHandler, authMw.RequireAuthentication)
 
 	return e
 }
