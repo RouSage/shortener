@@ -63,19 +63,36 @@ func (suite *UrlTestSuite) TearDownTest() {
 func (suite *UrlTestSuite) TestCreateUrl() {
 	t := suite.T()
 
-	url, err := suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"})
-	assert.NoError(t, err)
-	assert.Equal(t, "short-url", url.ID)
-	assert.Equal(t, "https://long.url", url.LongUrl)
-	assert.False(t, url.IsCustom)
+	userID := "user-id"
+	emptyUserID := ""
 
-	url2, err := suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true})
-	assert.NoError(t, err)
-	assert.Equal(t, "short-url2", url2.ID)
-	assert.Equal(t, "https://long.url", url2.LongUrl)
-	assert.True(t, url2.IsCustom)
+	tests := []struct {
+		params CreateUrlParams
+	}{
+		{
+			params: CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"},
+		},
+		{
+			params: CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true},
+		},
+		{
+			params: CreateUrlParams{ID: "short-url3", LongUrl: "https://long.url", IsCustom: true, UserID: &userID},
+		},
+		{
+			params: CreateUrlParams{ID: "short-url4", LongUrl: "https://long.url", IsCustom: true, UserID: &emptyUserID},
+		},
+	}
 
-	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://another-long.url"})
+	for _, tt := range tests {
+		url, err := suite.queries.CreateUrl(suite.ctx, tt.params)
+		assert.NoError(t, err)
+		assert.Equal(t, tt.params.ID, url.ID)
+		assert.Equal(t, tt.params.LongUrl, url.LongUrl)
+		assert.Equal(t, tt.params.IsCustom, url.IsCustom)
+		assert.Equal(t, tt.params.UserID, url.UserID)
+	}
+
+	_, err := suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://another-long.url"})
 	if assert.Error(t, err) {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

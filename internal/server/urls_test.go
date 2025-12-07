@@ -10,8 +10,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
@@ -122,18 +124,21 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 	tests := []struct {
 		name                string
 		payload             CreateShortUrlDTO
+		userId              string
 		expectedStatus      int
 		expectedUrl         string
 		expectedShortUrlLen int
 		expectedIsCustom    bool
 	}{
-		{name: "valid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 12, expectedIsCustom: true},
-		{name: "duplicate short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusConflict},
-		{name: "too small short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "code"}, expectedStatus: http.StatusBadRequest},
-		{name: "too big short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code_1234567891"}, expectedStatus: http.StatusBadRequest},
-		{name: "invalid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code$&*"}, expectedStatus: http.StatusBadRequest},
-		// if not custom short code is provided, it will be generated, hence isCustom = false
-		{name: "empty short code", payload: CreateShortUrlDTO{URL: longUrl}, expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 8, expectedIsCustom: false},
+		{name: "valid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, userId: "user-id", expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 12, expectedIsCustom: true},
+		{name: "duplicate short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, userId: "user-id-1", expectedStatus: http.StatusConflict},
+		{name: "too small short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "code"}, userId: "user-id", expectedStatus: http.StatusBadRequest},
+		{name: "too big short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code_1234567891"}, userId: "user-id", expectedStatus: http.StatusBadRequest},
+		{name: "invalid short code", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-code$&*"}, userId: "user-id", expectedStatus: http.StatusBadRequest},
+		// if no custom short code is provided, it will be generated, hence isCustom = false
+		{name: "empty short code", payload: CreateShortUrlDTO{URL: longUrl}, userId: "user-id", expectedStatus: http.StatusCreated, expectedUrl: longUrl, expectedShortUrlLen: 8, expectedIsCustom: false},
+		// if user is not authenticated, they cannot create custom short codes
+		{name: "unauthenticated user", payload: CreateShortUrlDTO{URL: longUrl, ShortCode: "short-Code_1"}, expectedStatus: http.StatusForbidden},
 	}
 
 	for _, tt := range tests {
@@ -146,10 +151,22 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
 
+			// Set userId claim (Subject) to the context
+			if tt.userId != "" {
+				c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
+					Subject: tt.userId,
+				}})
+			}
+
 			// Assertions
 			err = s.CreateShortURLHandler(c)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			if tt.expectedStatus == http.StatusForbidden {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+			}
 
 			if tt.expectedStatus == http.StatusCreated {
 				var actual repository.Url
@@ -158,6 +175,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 				assert.Len(t, actual.ID, tt.expectedShortUrlLen, "incorrect short URL length")
 				assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
 				assert.Equal(t, tt.expectedIsCustom, actual.IsCustom, "isCustom does not match")
+				assert.Equal(t, tt.userId, *actual.UserID, "userID does not match")
 			}
 		})
 	}
