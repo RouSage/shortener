@@ -55,15 +55,22 @@ const deleteUrl = `-- name: DeleteUrl :execrows
 DELETE FROM urls
 WHERE
   id = $1
+  AND user_id = $2
 `
+
+type DeleteUrlParams struct {
+	ID     string  `json:"id"`
+	UserID *string `json:"userId"`
+}
 
 // DeleteUrl
 //
 //	DELETE FROM urls
 //	WHERE
 //	  id = $1
-func (q *Queries) DeleteUrl(ctx context.Context, id string) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteUrl, id)
+//	  AND user_id = $2
+func (q *Queries) DeleteUrl(ctx context.Context, arg DeleteUrlParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUrl, arg.ID, arg.UserID)
 	if err != nil {
 		return 0, err
 	}

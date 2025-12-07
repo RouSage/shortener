@@ -192,9 +192,12 @@ func (s *Server) DeletShortUrlHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
 
-	rep := repository.New(s.db)
+	var (
+		userID = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
 
-	rowsAffected, err := rep.DeleteUrl(ctx, params.Code)
+	rowsAffected, err := rep.DeleteUrl(ctx, repository.DeleteUrlParams{ID: params.Code, UserID: userID})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to delete short url")
 		span.RecordError(err)
