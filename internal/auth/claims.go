@@ -31,13 +31,13 @@ func (c CustomClaims) HasScope(expectedScope string) bool {
 	return slices.Contains(result, expectedScope)
 }
 
-func GetUserID(c echo.Context) (string, bool) {
+func GetUserID(c echo.Context) *string {
 	claims := getClaimsFromContext(c)
-	if claims == nil {
-		return "", false
+	if claims == nil || claims.RegisteredClaims.Subject == "" {
+		return nil
 	}
 
-	return claims.RegisteredClaims.Subject, true
+	return &claims.RegisteredClaims.Subject
 }
 
 func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {

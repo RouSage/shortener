@@ -73,8 +73,8 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		userID, ok := GetUserID(c)
-		if !ok || userID == "" {
+		userID := GetUserID(c)
+		if userID == nil || *userID == "" {
 			return echo.ErrUnauthorized
 		}
 

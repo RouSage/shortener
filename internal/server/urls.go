@@ -35,11 +35,11 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	span.SetAttributes(attribute.String("url", dto.URL))
 
 	var (
-		userId, _ = auth.GetUserID(c)
-		rep       = repository.New(s.db)
-		shortUrl  string
-		newUrl    repository.Url
-		err       error
+		userId   = auth.GetUserID(c)
+		rep      = repository.New(s.db)
+		shortUrl string
+		newUrl   repository.Url
+		err      error
 	)
 
 	// Use a custom short code if provided,
@@ -48,7 +48,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	if dto.ShortCode != "" {
 		span.SetAttributes(attribute.String("short_code", dto.ShortCode))
 
-		if userId == "" {
+		if userId == nil || *userId == "" {
 			span.AddEvent("unauthenticated user attempted to create custom short code")
 			return echo.NewHTTPError(http.StatusForbidden, "Only authenticated users can create custom short codes")
 		}
@@ -57,7 +57,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 			ID:       dto.ShortCode,
 			LongUrl:  dto.URL,
 			IsCustom: true,
-			UserID:   &userId,
+			UserID:   userId,
 		})
 		if err != nil {
 			span.SetStatus(codes.Error, "failed to create short url with custom short code")
@@ -91,7 +91,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 			ID:       shortUrl,
 			LongUrl:  dto.URL,
 			IsCustom: false,
-			UserID:   &userId,
+			UserID:   userId,
 		})
 		if err == nil {
 			break
