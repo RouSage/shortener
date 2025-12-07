@@ -185,7 +185,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 
 func TestGetLongUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
 
 	tests := []struct {
 		name           string
@@ -236,7 +236,7 @@ func TestGetLongUrlHandler(t *testing.T) {
 
 func TestGetLongUrlHandler_Cache(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
 
 	tests := []struct {
 		name           string
@@ -282,7 +282,9 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 
 func TestDeleteShortUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com")
+
+	userID := "user-id"
+	createdUrl := createShortUrl(t, s, e, "https://example.com", userID)
 
 	tests := []struct {
 		name           string
@@ -300,10 +302,14 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/urls/%s", tt.code), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
+
 			c := e.NewContext(req, res)
 			c.SetPath("/urls/:code")
 			c.SetParamNames("code")
 			c.SetParamValues(tt.code)
+			c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
+				Subject: userID,
+			}})
 
 			// Assertions
 			err := s.DeletShortUrlHandler(c)
@@ -311,6 +317,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 				switch tt.expectedStatus {
 				case http.StatusNotFound:
 					assert.Equal(t, echo.ErrNotFound, err)
+				default:
+					require.NoError(t, err)
 				}
 			} else {
 				require.NoError(t, err)
@@ -370,7 +378,7 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	return s, e, cleanup
 }
 
-func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string) repository.Url {
+func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID string) repository.Url {
 	payload := CreateShortUrlDTO{URL: url}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
@@ -379,6 +387,12 @@ func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string) repositor
 	createReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	createRes := httptest.NewRecorder()
 	createCtx := e.NewContext(createReq, createRes)
+
+	if userID != "" {
+		createCtx.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
+			Subject: userID,
+		}})
+	}
 
 	err = s.CreateShortURLHandler(createCtx)
 	require.NoError(t, err)
