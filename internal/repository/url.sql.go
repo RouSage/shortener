@@ -15,7 +15,7 @@ INSERT INTO
 VALUES
   ($1, $2, $3)
 RETURNING
-  id, long_url, created_at, is_custom
+  id, long_url, created_at, is_custom, user_id
 `
 
 type CreateUrlParams struct {
@@ -31,7 +31,7 @@ type CreateUrlParams struct {
 //	VALUES
 //	  ($1, $2, $3)
 //	RETURNING
-//	  id, long_url, created_at, is_custom
+//	  id, long_url, created_at, is_custom, user_id
 func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, error) {
 	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl, arg.IsCustom)
 	var i Url
@@ -40,6 +40,7 @@ func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, erro
 		&i.LongUrl,
 		&i.CreatedAt,
 		&i.IsCustom,
+		&i.UserID,
 	)
 	return i, err
 }
