@@ -1,8 +1,8 @@
 -- name: CreateUrl :one
 INSERT INTO
-  urls (id, long_url, is_custom)
+  urls (id, long_url, is_custom, user_id)
 VALUES
-  ($1, $2, $3)
+  ($1, $2, $3, $4)
 RETURNING
   *;
 

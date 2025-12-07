@@ -11,29 +11,35 @@ import (
 
 const createUrl = `-- name: CreateUrl :one
 INSERT INTO
-  urls (id, long_url, is_custom)
+  urls (id, long_url, is_custom, user_id)
 VALUES
-  ($1, $2, $3)
+  ($1, $2, $3, $4)
 RETURNING
   id, long_url, created_at, is_custom, user_id
 `
 
 type CreateUrlParams struct {
-	ID       string `json:"id"`
-	LongUrl  string `json:"longUrl"`
-	IsCustom bool   `json:"isCustom"`
+	ID       string  `json:"id"`
+	LongUrl  string  `json:"longUrl"`
+	IsCustom bool    `json:"isCustom"`
+	UserID   *string `json:"userId"`
 }
 
 // CreateUrl
 //
 //	INSERT INTO
-//	  urls (id, long_url, is_custom)
+//	  urls (id, long_url, is_custom, user_id)
 //	VALUES
-//	  ($1, $2, $3)
+//	  ($1, $2, $3, $4)
 //	RETURNING
 //	  id, long_url, created_at, is_custom, user_id
 func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, error) {
-	row := q.db.QueryRow(ctx, createUrl, arg.ID, arg.LongUrl, arg.IsCustom)
+	row := q.db.QueryRow(ctx, createUrl,
+		arg.ID,
+		arg.LongUrl,
+		arg.IsCustom,
+		arg.UserID,
+	)
 	var i Url
 	err := row.Scan(
 		&i.ID,

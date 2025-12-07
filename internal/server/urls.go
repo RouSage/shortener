@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/generator"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
@@ -34,23 +35,30 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	span.SetAttributes(attribute.String("url", dto.URL))
 
 	var (
-		rep      = repository.New(s.db)
-		shortUrl string
-		newUrl   repository.Url
-		err      error
+		userId, _ = auth.GetUserID(c)
+		rep       = repository.New(s.db)
+		shortUrl  string
+		newUrl    repository.Url
+		err       error
 	)
 
 	// Use a custom short code if provided,
-	// otherwise generate a random one
+	// otherwise generate a random one.
+	// Only authenticated users can create custom short codes
 	if dto.ShortCode != "" {
 		span.SetAttributes(attribute.String("short_code", dto.ShortCode))
+
+		if userId == "" {
+			span.AddEvent("unauthenticated user attempted to create custom short code")
+			return echo.NewHTTPError(http.StatusForbidden, "Only authenticated users can create custom short codes")
+		}
 
 		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       dto.ShortCode,
 			LongUrl:  dto.URL,
 			IsCustom: true,
+			UserID:   &userId,
 		})
-
 		if err != nil {
 			span.SetStatus(codes.Error, "failed to create short url with custom short code")
 			span.RecordError(err)
@@ -83,6 +91,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 			ID:       shortUrl,
 			LongUrl:  dto.URL,
 			IsCustom: false,
+			UserID:   &userId,
 		})
 		if err == nil {
 			break
