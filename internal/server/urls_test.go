@@ -237,18 +237,23 @@ func TestGetLongUrlHandler(t *testing.T) {
 func TestGetUserUrlsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 
-	userID := "user-id"
+	var (
+		userID_1 = "user-id"
+		userID_2 = "user-id-2"
+	)
 
 	for i := range 5 {
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID)
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1)
 	}
 
 	tests := []struct {
 		name           string
+		userID         string
 		expectedStatus int
 		expectedUrls   int
 	}{
-		{name: "return user urls", expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return user urls", userID: userID_1, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return no urls for user without urls", userID: userID_2, expectedStatus: http.StatusOK, expectedUrls: 0},
 	}
 
 	for _, tt := range tests {
@@ -259,7 +264,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 			c := e.NewContext(req, res)
 			c.SetPath("/urls")
 			c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
-				Subject: userID,
+				Subject: tt.userID,
 			}})
 
 			// Assertions
