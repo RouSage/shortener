@@ -12,7 +12,7 @@ import (
 
 const defaultLength = 8
 
-var tracer = otel.Tracer("github.com/rousage/shortener/generator")
+var tracer = otel.Tracer("github.com/rousage/shortener/internal/generator")
 
 func ShortUrl(ctx context.Context, length int) (string, error) {
 	_, span := tracer.Start(ctx, "generator.ShortUrl")

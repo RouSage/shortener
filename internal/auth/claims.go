@@ -7,6 +7,7 @@ import (
 
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type contextKey string
@@ -32,10 +33,15 @@ func (c CustomClaims) HasScope(expectedScope string) bool {
 }
 
 func GetUserID(c echo.Context) *string {
+	_, span := tracer.Start(c.Request().Context(), "auth.GetUserID")
+	defer span.End()
+
 	claims := getClaimsFromContext(c)
 	if claims == nil || claims.RegisteredClaims.Subject == "" {
+		span.SetAttributes(attribute.String("userID", ""))
 		return nil
 	}
+	span.SetAttributes(attribute.String("userID", claims.RegisteredClaims.Subject))
 
 	return &claims.RegisteredClaims.Subject
 }

@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("github.com/rousage/shortener/cache")
+var tracer = otel.Tracer("github.com/rousage/shortener/internal/cache")
 
 func Connect(logger zerolog.Logger, cfg config.Cache) *glide.Client {
 	clientCfg := cacheConfig.NewClientConfiguration().WithAddress(&cacheConfig.NodeAddress{
