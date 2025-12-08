@@ -173,6 +173,28 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	})
 }
 
+func (s *Server) GetUserUrls(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
+	defer span.End()
+
+	var (
+		userID = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
+
+	urls, err := rep.GetUserUrls(ctx, userID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to get user urls")
+		span.RecordError(err)
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"urls": urls,
+	})
+}
+
 type DeleteShortUrlParams struct {
 	GetLongUrlParams
 }
