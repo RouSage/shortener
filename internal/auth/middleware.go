@@ -58,6 +58,7 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 
 		token, err := jwtmiddleware.AuthHeaderTokenExtractor(c.Request())
 		if err != nil {
+			span.SetStatus(codes.Error, "failed to extract token")
 			span.RecordError(err)
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
