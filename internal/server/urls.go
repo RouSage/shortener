@@ -182,6 +182,7 @@ func (s *Server) GetUserUrls(c echo.Context) error {
 		rep    = repository.New(s.db)
 	)
 
+	// TODO: add pagination
 	urls, err := rep.GetUserUrls(ctx, userID)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get user urls")
