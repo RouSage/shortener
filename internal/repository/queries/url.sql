@@ -6,6 +6,19 @@ VALUES
 RETURNING
   *;
 
+-- name: GetUserUrls :many
+SELECT
+  id,
+  long_url,
+  created_at,
+  is_custom
+FROM
+  urls
+WHERE
+  user_id = $1
+ORDER BY
+  created_at DESC;
+
 -- name: GetLongUrl :one
 SELECT
   long_url

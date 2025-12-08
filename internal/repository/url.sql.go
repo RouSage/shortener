@@ -7,6 +7,7 @@ package repository
 
 import (
 	"context"
+	"time"
 )
 
 const createUrl = `-- name: CreateUrl :one
@@ -103,4 +104,63 @@ func (q *Queries) GetLongUrl(ctx context.Context, id string) (string, error) {
 	var long_url string
 	err := row.Scan(&long_url)
 	return long_url, err
+}
+
+const getUserUrls = `-- name: GetUserUrls :many
+SELECT
+  id,
+  long_url,
+  created_at,
+  is_custom
+FROM
+  urls
+WHERE
+  user_id = $1
+ORDER BY
+  created_at DESC
+`
+
+type GetUserUrlsRow struct {
+	ID        string    `json:"id"`
+	LongUrl   string    `json:"longUrl"`
+	CreatedAt time.Time `json:"createdAt"`
+	IsCustom  bool      `json:"isCustom"`
+}
+
+// GetUserUrls
+//
+//	SELECT
+//	  id,
+//	  long_url,
+//	  created_at,
+//	  is_custom
+//	FROM
+//	  urls
+//	WHERE
+//	  user_id = $1
+//	ORDER BY
+//	  created_at DESC
+func (q *Queries) GetUserUrls(ctx context.Context, userID *string) ([]GetUserUrlsRow, error) {
+	rows, err := q.db.Query(ctx, getUserUrls, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserUrlsRow{}
+	for rows.Next() {
+		var i GetUserUrlsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LongUrl,
+			&i.CreatedAt,
+			&i.IsCustom,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
