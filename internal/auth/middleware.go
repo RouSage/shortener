@@ -12,7 +12,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 )
+
+var tracer = otel.Tracer("github.com/rousage/shortener/internal/auth")
 
 type AuthMiddleware struct {
 	cfg    config.Auth
@@ -49,19 +53,26 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 
 	return func(c echo.Context) error {
+		ctx, span := tracer.Start(c.Request().Context(), "auth.Authenticate")
+		defer span.End()
+
 		token, err := jwtmiddleware.AuthHeaderTokenExtractor(c.Request())
 		if err != nil {
+			span.SetStatus(codes.Error, "failed to extract token")
+			span.RecordError(err)
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 		// If token is not present, just continue to the next handler.
 		if token == "" {
+			span.AddEvent("no bearer token, user is anonymous")
 			return next(c)
 		}
 
 		// Otherwise, validate the token.
-		tokenInfo, err := jwtValidator.ValidateToken(c.Request().Context(), token)
+		tokenInfo, err := jwtValidator.ValidateToken(ctx, token)
 		if err != nil {
-			// TODO: add tracing
+			span.SetStatus(codes.Error, "failed to validate token")
+			span.RecordError(err)
 			return echo.ErrUnauthorized
 		}
 
@@ -73,8 +84,12 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 
 func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		_, span := tracer.Start(c.Request().Context(), "auth.RequireAuthentication")
+		defer span.End()
+
 		userID := GetUserID(c)
 		if userID == nil || *userID == "" {
+			span.AddEvent("user is not authenticated")
 			return echo.ErrUnauthorized
 		}
 
