@@ -234,6 +234,49 @@ func TestGetLongUrlHandler(t *testing.T) {
 	t.Cleanup(cleanup)
 }
 
+func TestGetUserUrlsHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+
+	userID := "user-id"
+
+	for i := range 5 {
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID)
+	}
+
+	tests := []struct {
+		name           string
+		expectedStatus int
+		expectedUrls   int
+	}{
+		{name: "return user urls", expectedStatus: http.StatusOK, expectedUrls: 5},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/urls", nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+			c.SetPath("/urls")
+			c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
+				Subject: userID,
+			}})
+
+			// Assertions
+			err := s.GetUserUrls(c)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, res.Code)
+
+			var actual map[string][]repository.GetUserUrlsRow
+			err = json.NewDecoder(res.Body).Decode(&actual)
+			require.NoError(t, err, "error decoding response body")
+			assert.Equal(t, tt.expectedUrls, len(actual["urls"]), "incorrect number of urls")
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
 func TestGetLongUrlHandler_Cache(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
