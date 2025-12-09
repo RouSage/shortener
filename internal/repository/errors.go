@@ -16,6 +16,15 @@ func (q *Queries) IsDuplicateKeyError(err error) bool {
 	return false
 }
 
+func (q *Queries) IsCheckConstraintError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23514"
+	}
+
+	return false
+}
+
 func (q *Queries) IsNotFoundError(err error) bool {
 	return errors.Is(err, pgx.ErrNoRows)
 }
