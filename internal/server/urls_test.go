@@ -160,9 +160,8 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 
 			// Assertions
 			err = s.createShortURLHandler(c)
-
-			if tt.expectedStatus == http.StatusForbidden {
-				require.Error(t, err)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -210,11 +209,8 @@ func TestGetLongUrlHandler(t *testing.T) {
 
 			// Assertions
 			err := s.getLongUrlHandler(c)
-			if err != nil {
-				switch tt.expectedStatus {
-				case http.StatusNotFound:
-					assert.Equal(t, echo.ErrNotFound, err)
-				}
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -370,13 +366,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 			// Assertions
 			err := s.deletShortUrlHandler(c)
-			if err != nil {
-				switch tt.expectedStatus {
-				case http.StatusNotFound:
-					assert.Equal(t, echo.ErrNotFound, err)
-				default:
-					require.NoError(t, err)
-				}
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
