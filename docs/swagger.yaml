@@ -1,0 +1,12 @@
+basePath: /
+host: localhost:3001
+info:
+  contact: {}
+  description: This is URL shortener API
+  license:
+    name: MIT
+    url: https://github.com/RouSage/shortener/blob/main/LICENSE
+  title: Shortener API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
