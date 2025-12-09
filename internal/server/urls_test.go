@@ -255,7 +255,13 @@ func TestGetUserUrlsHandler(t *testing.T) {
 		expectedUrls   int
 	}{
 		{name: "return user urls", userID: userID_1, page: 1, pageSize: 25, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return user urls for page=1 and pageSize=3", userID: userID_1, page: 1, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 3},
+		{name: "return user urls for page=2 and pageSize=3", userID: userID_1, page: 2, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 2},
 		{name: "return no urls for user without urls", page: 1, pageSize: 25, userID: userID_2, expectedStatus: http.StatusOK, expectedUrls: 0},
+		{name: "error on 0 page", userID: userID_1, page: 0, pageSize: 25, expectedStatus: http.StatusBadRequest},
+		{name: "error on page > max", userID: userID_1, page: 20000, pageSize: 25, expectedStatus: http.StatusBadRequest},
+		{name: "error on 0 pageSize", userID: userID_1, page: 1, pageSize: 0, expectedStatus: http.StatusBadRequest},
+		{name: "error on pageSize > max", userID: userID_1, page: 1, pageSize: 101, expectedStatus: http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
