@@ -19,7 +19,7 @@ type CreateShortUrlDTO struct {
 	URL       string `json:"url" validate:"required,http_url"`
 }
 
-func (s *Server) CreateShortURLHandler(c echo.Context) error {
+func (s *Server) createShortURLHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateShortURLHandler")
 	defer span.End()
 
@@ -137,7 +137,7 @@ type GetLongUrlParams struct {
 	Code string `param:"code" validate:"required"`
 }
 
-func (s *Server) GetLongUrlHandler(c echo.Context) error {
+func (s *Server) getLongUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
 	defer span.End()
 
@@ -199,7 +199,7 @@ type PaginatedUrls struct {
 	Pagination Pagination    `json:"pagination"`
 }
 
-func (s *Server) GetUserUrls(c echo.Context) error {
+func (s *Server) getUserUrls(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
 	defer span.End()
 
@@ -254,7 +254,7 @@ type DeleteShortUrlParams struct {
 	GetLongUrlParams
 }
 
-func (s *Server) DeletShortUrlHandler(c echo.Context) error {
+func (s *Server) deletShortUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "DeleteShortUrlHandler")
 	defer span.End()
 

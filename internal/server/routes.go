@@ -91,19 +91,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
-	e.GET("/", s.HelloWorldHandler)
+	e.GET("/", s.helloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
 	urlsApi := e.Group("/urls", authMw.Authenticate)
-	urlsApi.POST("", s.CreateShortURLHandler)
-	urlsApi.GET("", s.GetUserUrls, authMw.RequireAuthentication)
-	urlsApi.GET("/:code", s.GetLongUrlHandler)
-	urlsApi.DELETE("/:code", s.DeletShortUrlHandler, authMw.RequireAuthentication)
+	urlsApi.POST("", s.createShortURLHandler)
+	urlsApi.GET("", s.getUserUrls, authMw.RequireAuthentication)
+	urlsApi.GET("/:code", s.getLongUrlHandler)
+	urlsApi.DELETE("/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
 
 	return e
 }
 
-func (s *Server) HelloWorldHandler(c echo.Context) error {
+func (s *Server) helloWorldHandler(c echo.Context) error {
 	resp := map[string]string{
 		"message": "Hello World",
 	}

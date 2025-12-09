@@ -21,7 +21,7 @@ func TestHandler(t *testing.T) {
 	s := &Server{}
 
 	// Assertions
-	err := s.HelloWorldHandler(c)
+	err := s.helloWorldHandler(c)
 	assert.Nil(t, err, "handler() returned an error")
 	assert.Equal(t, http.StatusOK, resp.Code, "handler() wrong status code")
 

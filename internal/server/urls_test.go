@@ -53,7 +53,7 @@ func TestCreateShortURLHandler(t *testing.T) {
 			c := e.NewContext(req, res)
 
 			// Assertions
-			err = s.CreateShortURLHandler(c)
+			err = s.createShortURLHandler(c)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
@@ -84,7 +84,7 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	c1 := e.NewContext(req1, resp1)
 
 	// Assertions
-	err = s.CreateShortURLHandler(c1)
+	err = s.createShortURLHandler(c1)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp1.Code)
 
@@ -102,7 +102,7 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	c2 := e.NewContext(req2, resp2)
 
 	// Assertions
-	err = s.CreateShortURLHandler(c2)
+	err = s.createShortURLHandler(c2)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp2.Code)
 
@@ -159,7 +159,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 			}
 
 			// Assertions
-			err = s.CreateShortURLHandler(c)
+			err = s.createShortURLHandler(c)
 
 			if tt.expectedStatus == http.StatusForbidden {
 				require.Error(t, err)
@@ -209,7 +209,7 @@ func TestGetLongUrlHandler(t *testing.T) {
 			c.SetParamValues(tt.code)
 
 			// Assertions
-			err := s.GetLongUrlHandler(c)
+			err := s.getLongUrlHandler(c)
 			if err != nil {
 				switch tt.expectedStatus {
 				case http.StatusNotFound:
@@ -277,7 +277,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 			}})
 
 			// Assertions
-			err := s.GetUserUrls(c)
+			err := s.getUserUrls(c)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
@@ -322,7 +322,7 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
 
-			err = s.GetLongUrlHandler(c)
+			err = s.getLongUrlHandler(c)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
@@ -369,7 +369,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 			}})
 
 			// Assertions
-			err := s.DeletShortUrlHandler(c)
+			err := s.deletShortUrlHandler(c)
 			if err != nil {
 				switch tt.expectedStatus {
 				case http.StatusNotFound:
@@ -451,7 +451,7 @@ func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID st
 		}})
 	}
 
-	err = s.CreateShortURLHandler(createCtx)
+	err = s.createShortURLHandler(createCtx)
 	require.NoError(t, err)
 
 	var createdUrl repository.Url
