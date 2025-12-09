@@ -95,8 +95,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/health", s.healthHandler)
 
 	urlsApi := e.Group("/urls", authMw.Authenticate)
-	urlsApi.POST("/", s.CreateShortURLHandler)
-	urlsApi.GET("/", s.GetUserUrls, authMw.RequireAuthentication)
+	urlsApi.POST("", s.CreateShortURLHandler)
+	urlsApi.GET("", s.GetUserUrls, authMw.RequireAuthentication)
 	urlsApi.GET("/:code", s.GetLongUrlHandler)
 	urlsApi.DELETE("/:code", s.DeletShortUrlHandler, authMw.RequireAuthentication)
 
