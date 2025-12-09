@@ -1,0 +1,16 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is URL shortener API",
+        "title": "Shortener API",
+        "contact": {},
+        "license": {
+            "name": "MIT",
+            "url": "https://github.com/RouSage/shortener/blob/main/LICENSE"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:3001",
+    "basePath": "/",
+    "paths": {}
+}

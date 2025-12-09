@@ -102,6 +102,11 @@ watch:
             fi; \
         fi
 
+## swagger: generate swagger docs
+.PHONY: swagger
+swagger:
+	go tool swag i -g internal/server/routes.go
+
 # ==================================================================================== #
 # DATABASE
 # ==================================================================================== #

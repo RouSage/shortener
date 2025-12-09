@@ -8,10 +8,22 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
+
+	_ "github.com/rousage/shortener/docs"
 )
 
+// @title Shortener API
+// @version 1.0
+// @description This is URL shortener API
+
+// @license.name MIT
+// @license.url https://github.com/RouSage/shortener/blob/main/LICENSE
+
+// @host localhost:3001
+// @BasePath /
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
@@ -91,6 +103,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
+	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
 	e.GET("/", s.helloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
