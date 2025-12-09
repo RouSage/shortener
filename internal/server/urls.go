@@ -71,6 +71,13 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 						"shortCode": "Short code is not available",
 					},
 				})
+			} else if rep.IsCheckConstraintError(err) {
+				return c.JSON(http.StatusConflict, map[string]any{
+					"message": "Validation failed",
+					"errors": appvalidator.ValidationError{
+						"shortCode": "Custom short code could not be created",
+					},
+				})
 			}
 
 			s.logger.Error().Err(err).Msg("failed to create custom short url")
@@ -102,6 +109,13 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
 			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
+		} else if rep.IsCheckConstraintError(err) {
+			return c.JSON(http.StatusConflict, map[string]any{
+				"message": "Validation failed",
+				"errors": appvalidator.ValidationError{
+					"shortCode": "Custom short code could not be created",
+				},
+			})
 		} else {
 			break
 		}
