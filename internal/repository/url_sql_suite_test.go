@@ -72,7 +72,7 @@ func (suite *UrlTestSuite) TestCreateUrl() {
 		params CreateUrlParams
 	}{
 		{params: CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"}},
-		{params: CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true}},
+		{params: CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url"}},
 		{params: CreateUrlParams{ID: "short-url3", LongUrl: "https://long.url", IsCustom: true, UserID: &userID}},
 		{params: CreateUrlParams{ID: "short-url4", LongUrl: "https://long.url", IsCustom: true, UserID: &emptyUserID}},
 	}
@@ -101,6 +101,15 @@ func (suite *UrlTestSuite) TestCreateUrl() {
 		if errors.As(err, &pgErr) {
 			assert.Equal(t, "22001", pgErr.Code)
 			assert.Equal(t, "value too long for type character varying(16)", pgErr.Message)
+		}
+	}
+
+	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url-custom", LongUrl: "https://long.url", IsCustom: true})
+	if assert.Error(t, err) {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			assert.Equal(t, "23514", pgErr.Code)
+			assert.Equal(t, "new row for relation \"urls\" violates check constraint \"custom_urls_require_user\"", pgErr.Message)
 		}
 	}
 }
