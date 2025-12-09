@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
@@ -14,7 +15,7 @@ import (
 )
 
 type CreateShortUrlDTO struct {
-	ShortCode string `json:"short_code" validate:"omitempty,min=5,max=16,shortcode"`
+	ShortCode string `json:"shortCode" validate:"omitempty,min=5,max=16,shortcode"`
 	URL       string `json:"url" validate:"required,http_url"`
 }
 
@@ -46,7 +47,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	// otherwise generate a random one.
 	// Only authenticated users can create custom short codes
 	if dto.ShortCode != "" {
-		span.SetAttributes(attribute.String("short_code", dto.ShortCode))
+		span.SetAttributes(attribute.String("shortCode", dto.ShortCode))
 
 		if userId == nil || *userId == "" {
 			span.AddEvent("unauthenticated user attempted to create custom short code")
@@ -67,7 +68,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 				return c.JSON(http.StatusConflict, map[string]any{
 					"message": "Validation failed",
 					"errors": appvalidator.ValidationError{
-						"short_code": "Short code is not available",
+						"shortCode": "Short code is not available",
 					},
 				})
 			}
@@ -171,6 +172,68 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"longUrl": longUrl,
 	})
+}
+
+type UrlResponse struct {
+	ID        string    `json:"id"`
+	LongUrl   string    `json:"longUrl"`
+	CreatedAt time.Time `json:"createdAt"`
+	IsCustom  bool      `json:"isCustom"`
+}
+type PaginatedUrls struct {
+	Items      []UrlResponse `json:"items"`
+	Pagination Pagination    `json:"pagination"`
+}
+
+func (s *Server) GetUserUrls(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
+	defer span.End()
+
+	params := new(Filters)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
+
+	var (
+		userID = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
+
+	urls, err := rep.GetUserUrls(ctx, repository.GetUserUrlsParams{UserID: userID, Limit: params.limit(), Offset: params.offset()})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to get user urls")
+		span.RecordError(err)
+
+		return echo.ErrInternalServerError
+	}
+
+	var totalCount int
+	if len(urls) > 0 {
+		totalCount = int(urls[0].TotalCount)
+	}
+
+	items := make([]UrlResponse, len(urls))
+	for i, url := range urls {
+		items[i] = UrlResponse{
+			ID:        url.ID,
+			LongUrl:   url.LongUrl,
+			CreatedAt: url.CreatedAt,
+			IsCustom:  url.IsCustom,
+		}
+	}
+
+	response := &PaginatedUrls{
+		Items:      items,
+		Pagination: calculatePagination(totalCount, int(params.Page), int(params.PageSize)),
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 type DeleteShortUrlParams struct {

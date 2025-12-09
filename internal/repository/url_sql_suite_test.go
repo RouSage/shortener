@@ -63,24 +63,18 @@ func (suite *UrlTestSuite) TearDownTest() {
 func (suite *UrlTestSuite) TestCreateUrl() {
 	t := suite.T()
 
-	userID := "user-id"
-	emptyUserID := ""
+	var (
+		userID      = "user-id"
+		emptyUserID = ""
+	)
 
 	tests := []struct {
 		params CreateUrlParams
 	}{
-		{
-			params: CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"},
-		},
-		{
-			params: CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true},
-		},
-		{
-			params: CreateUrlParams{ID: "short-url3", LongUrl: "https://long.url", IsCustom: true, UserID: &userID},
-		},
-		{
-			params: CreateUrlParams{ID: "short-url4", LongUrl: "https://long.url", IsCustom: true, UserID: &emptyUserID},
-		},
+		{params: CreateUrlParams{ID: "short-url", LongUrl: "https://long.url"}},
+		{params: CreateUrlParams{ID: "short-url2", LongUrl: "https://long.url", IsCustom: true}},
+		{params: CreateUrlParams{ID: "short-url3", LongUrl: "https://long.url", IsCustom: true, UserID: &userID}},
+		{params: CreateUrlParams{ID: "short-url4", LongUrl: "https://long.url", IsCustom: true, UserID: &emptyUserID}},
 	}
 
 	for _, tt := range tests {
@@ -123,6 +117,46 @@ func (suite *UrlTestSuite) TestGetLongUrl() {
 	longUrl, err := suite.queries.GetLongUrl(suite.ctx, "short-url")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://long.url", longUrl)
+}
+
+func (suite *UrlTestSuite) TestGetUserUrls() {
+	t := suite.T()
+
+	var (
+		userID_1 = "user-id"
+		userID_2 = "user-id-2"
+	)
+
+	urlParams := []CreateUrlParams{
+		{ID: "short-url", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url2", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url3", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url4", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url5", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url6", LongUrl: "https://long.url", UserID: &userID_2},
+		{ID: "short-url7", LongUrl: "https://long.url", UserID: &userID_2},
+	}
+
+	urls, err := suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_1, Limit: 25, Offset: 0})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(urls))
+
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_2, Limit: 25, Offset: 0})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(urls))
+
+	for _, arg := range urlParams {
+		_, err := suite.queries.CreateUrl(suite.ctx, arg)
+		assert.NoError(t, err)
+	}
+
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_1, Limit: 25, Offset: 0})
+	assert.NoError(t, err)
+	assert.Equal(t, 5, len(urls))
+
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_2, Limit: 25, Offset: 0})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(urls))
 }
 
 func (suite *UrlTestSuite) TestDeleteShortUrl() {
