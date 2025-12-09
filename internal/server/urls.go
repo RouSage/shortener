@@ -15,7 +15,7 @@ import (
 )
 
 type CreateShortUrlDTO struct {
-	ShortCode string `json:"short_code" validate:"omitempty,min=5,max=16,shortcode"`
+	ShortCode string `json:"shortCode" validate:"omitempty,min=5,max=16,shortcode"`
 	URL       string `json:"url" validate:"required,http_url"`
 }
 
@@ -47,7 +47,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 	// otherwise generate a random one.
 	// Only authenticated users can create custom short codes
 	if dto.ShortCode != "" {
-		span.SetAttributes(attribute.String("short_code", dto.ShortCode))
+		span.SetAttributes(attribute.String("shortCode", dto.ShortCode))
 
 		if userId == nil || *userId == "" {
 			span.AddEvent("unauthenticated user attempted to create custom short code")
@@ -68,7 +68,7 @@ func (s *Server) CreateShortURLHandler(c echo.Context) error {
 				return c.JSON(http.StatusConflict, map[string]any{
 					"message": "Validation failed",
 					"errors": appvalidator.ValidationError{
-						"short_code": "Short code is not available",
+						"shortCode": "Short code is not available",
 					},
 				})
 			}
