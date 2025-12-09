@@ -249,16 +249,18 @@ func TestGetUserUrlsHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
+		page           int
+		pageSize       int
 		expectedStatus int
 		expectedUrls   int
 	}{
-		{name: "return user urls", userID: userID_1, expectedStatus: http.StatusOK, expectedUrls: 5},
-		{name: "return no urls for user without urls", userID: userID_2, expectedStatus: http.StatusOK, expectedUrls: 0},
+		{name: "return user urls", userID: userID_1, page: 1, pageSize: 25, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return no urls for user without urls", page: 1, pageSize: 25, userID: userID_2, expectedStatus: http.StatusOK, expectedUrls: 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/urls", nil)
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
@@ -272,10 +274,10 @@ func TestGetUserUrlsHandler(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, res.Code)
 
-			var actual map[string][]repository.GetUserUrlsRow
+			var actual PaginatedUrls
 			err = json.NewDecoder(res.Body).Decode(&actual)
 			require.NoError(t, err, "error decoding response body")
-			assert.Equal(t, tt.expectedUrls, len(actual["urls"]), "incorrect number of urls")
+			assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
 		})
 	}
 

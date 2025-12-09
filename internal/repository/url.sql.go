@@ -111,20 +111,32 @@ SELECT
   id,
   long_url,
   created_at,
-  is_custom
+  is_custom,
+  COUNT(*) OVER () as total_count
 FROM
   urls
 WHERE
   user_id = $1
 ORDER BY
   created_at DESC
+LIMIT
+  $2
+OFFSET
+  $3
 `
 
+type GetUserUrlsParams struct {
+	UserID *string `json:"userId"`
+	Limit  int32   `json:"limit"`
+	Offset int32   `json:"offset"`
+}
+
 type GetUserUrlsRow struct {
-	ID        string    `json:"id"`
-	LongUrl   string    `json:"longUrl"`
-	CreatedAt time.Time `json:"createdAt"`
-	IsCustom  bool      `json:"isCustom"`
+	ID         string    `json:"id"`
+	LongUrl    string    `json:"longUrl"`
+	CreatedAt  time.Time `json:"createdAt"`
+	IsCustom   bool      `json:"isCustom"`
+	TotalCount int64     `json:"totalCount"`
 }
 
 // GetUserUrls
@@ -133,15 +145,20 @@ type GetUserUrlsRow struct {
 //	  id,
 //	  long_url,
 //	  created_at,
-//	  is_custom
+//	  is_custom,
+//	  COUNT(*) OVER () as total_count
 //	FROM
 //	  urls
 //	WHERE
 //	  user_id = $1
 //	ORDER BY
 //	  created_at DESC
-func (q *Queries) GetUserUrls(ctx context.Context, userID *string) ([]GetUserUrlsRow, error) {
-	rows, err := q.db.Query(ctx, getUserUrls, userID)
+//	LIMIT
+//	  $2
+//	OFFSET
+//	  $3
+func (q *Queries) GetUserUrls(ctx context.Context, arg GetUserUrlsParams) ([]GetUserUrlsRow, error) {
+	rows, err := q.db.Query(ctx, getUserUrls, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +171,7 @@ func (q *Queries) GetUserUrls(ctx context.Context, userID *string) ([]GetUserUrl
 			&i.LongUrl,
 			&i.CreatedAt,
 			&i.IsCustom,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}

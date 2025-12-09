@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/appvalidator"
@@ -173,17 +174,38 @@ func (s *Server) GetLongUrlHandler(c echo.Context) error {
 	})
 }
 
+type UrlResponse struct {
+	ID        string    `json:"id"`
+	LongUrl   string    `json:"longUrl"`
+	CreatedAt time.Time `json:"createdAt"`
+	IsCustom  bool      `json:"isCustom"`
+}
+type PaginatedUrls struct {
+	Items      []UrlResponse `json:"items"`
+	Pagination Pagination    `json:"pagination"`
+}
+
 func (s *Server) GetUserUrls(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
 	defer span.End()
+
+	params := new(Filters)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
 
 	var (
 		userID = auth.GetUserID(c)
 		rep    = repository.New(s.db)
 	)
 
-	// TODO: add pagination
-	urls, err := rep.GetUserUrls(ctx, userID)
+	urls, err := rep.GetUserUrls(ctx, repository.GetUserUrlsParams{UserID: userID, Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get user urls")
 		span.RecordError(err)
@@ -191,9 +213,27 @@ func (s *Server) GetUserUrls(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"urls": urls,
-	})
+	var totalCount int
+	if len(urls) > 0 {
+		totalCount = int(urls[0].TotalCount)
+	}
+
+	items := make([]UrlResponse, len(urls))
+	for i, url := range urls {
+		items[i] = UrlResponse{
+			ID:        url.ID,
+			LongUrl:   url.LongUrl,
+			CreatedAt: url.CreatedAt,
+			IsCustom:  url.IsCustom,
+		}
+	}
+
+	response := &PaginatedUrls{
+		Items:      items,
+		Pagination: calculatePagination(totalCount, int(params.Page), int(params.PageSize)),
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 type DeleteShortUrlParams struct {

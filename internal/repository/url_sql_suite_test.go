@@ -137,11 +137,11 @@ func (suite *UrlTestSuite) TestGetUserUrls() {
 		{ID: "short-url7", LongUrl: "https://long.url", UserID: &userID_2},
 	}
 
-	urls, err := suite.queries.GetUserUrls(suite.ctx, &userID_1)
+	urls, err := suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_1, Limit: 25, Offset: 0})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(urls))
 
-	urls, err = suite.queries.GetUserUrls(suite.ctx, &userID_2)
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_2, Limit: 25, Offset: 0})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(urls))
 
@@ -150,11 +150,11 @@ func (suite *UrlTestSuite) TestGetUserUrls() {
 		assert.NoError(t, err)
 	}
 
-	urls, err = suite.queries.GetUserUrls(suite.ctx, &userID_1)
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_1, Limit: 25, Offset: 0})
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(urls))
 
-	urls, err = suite.queries.GetUserUrls(suite.ctx, &userID_2)
+	urls, err = suite.queries.GetUserUrls(suite.ctx, GetUserUrlsParams{UserID: &userID_2, Limit: 25, Offset: 0})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(urls))
 }

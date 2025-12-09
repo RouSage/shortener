@@ -11,13 +11,18 @@ SELECT
   id,
   long_url,
   created_at,
-  is_custom
+  is_custom,
+  COUNT(*) OVER () as total_count
 FROM
   urls
 WHERE
   user_id = $1
 ORDER BY
-  created_at DESC;
+  created_at DESC
+LIMIT
+  $2
+OFFSET
+  $3;
 
 -- name: GetLongUrl :one
 SELECT
