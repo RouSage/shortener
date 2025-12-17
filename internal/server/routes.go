@@ -86,7 +86,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 			return nil
 		},
 		Skipper: func(c echo.Context) bool {
-			return c.Request().URL.Path == "/health"
+			path := c.Request().URL.Path
+			return path == "/health" || path == "/health/metrics"
 		},
 	}))
 
@@ -111,6 +112,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 	e.GET("/", s.helloWorldHandler)
 	e.GET("/health", s.healthHandler)
+	e.GET("/health/metrics", s.healthMetricsHandler)
 
 	urlsApi := e.Group("/urls", authMw.Authenticate)
 	urlsApi.POST("", s.createShortURLHandler)

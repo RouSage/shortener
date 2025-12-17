@@ -44,22 +44,25 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Returns the health status of the application and database connection statistics",
+                "description": "Returns basic health status of the application",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Health"
                 ],
-                "summary": "Health Check",
+                "summary": "Simple Health Check",
                 "responses": {
                     "200": {
-                        "description": "status, message, and database statistics",
+                        "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/server.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/server.HealthResponse"
                         }
                     }
                 }
@@ -372,6 +375,15 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "error message"
+                }
+            }
+        },
+        "server.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ok"
                 }
             }
         },

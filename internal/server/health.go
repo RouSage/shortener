@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,15 +10,38 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type HealthResponse struct {
+	Status string `json:"status" example:"ok"`
+}
+
 // healthHandler godoc
 //
-//	@Summary		Health Check
-//	@Description	Returns the health status of the application and database connection statistics
+//	@Summary		Simple Health Check
+//	@Description	Returns basic health status of the application
 //	@Tags			Health
 //	@Produce		json
-//	@Success		200	{object}	map[string]string	"status, message, and database statistics"
+//	@Success		200	{object}	HealthResponse
+//	@Failure		503	{object}	HealthResponse
 //	@Router			/health [get]
 func (s *Server) healthHandler(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// Quick database ping
+	err := s.db.Ping(ctx)
+	if err != nil {
+		s.logger.Error().Err(err).Msg("database health check failed")
+		return c.JSON(http.StatusServiceUnavailable, &HealthResponse{
+			Status: "unavailable",
+		})
+	}
+
+	return c.JSON(http.StatusOK, &HealthResponse{
+		Status: "ok",
+	})
+}
+
+func (s *Server) healthMetricsHandler(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -28,10 +50,10 @@ func (s *Server) healthHandler(c echo.Context) error {
 	// Ping the database
 	err := s.db.Ping(ctx)
 	if err != nil {
+		s.logger.Error().Err(err).Msg("database health check failed")
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %s", err)
-		log.Fatalf("db down: %s", err) // Log the error and terminate the program
-		return c.JSON(http.StatusOK, stats)
+		return c.JSON(http.StatusServiceUnavailable, stats)
 	}
 
 	// Database is up, add more statistics

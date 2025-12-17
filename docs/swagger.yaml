@@ -50,6 +50,12 @@ definitions:
         example: error message
         type: string
     type: object
+  server.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
   server.PaginatedUrls:
     properties:
       items:
@@ -112,18 +118,19 @@ paths:
       - General
   /health:
     get:
-      description: Returns the health status of the application and database connection
-        statistics
+      description: Returns basic health status of the application
       produces:
       - application/json
       responses:
         "200":
-          description: status, message, and database statistics
+          description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Health Check
+            $ref: '#/definitions/server.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/server.HealthResponse'
+      summary: Simple Health Check
       tags:
       - Health
   /urls:
