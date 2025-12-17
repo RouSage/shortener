@@ -77,16 +77,20 @@ const docTemplate = `{
                 "summary": "Get User URLs",
                 "parameters": [
                     {
+                        "maximum": 10000,
+                        "minimum": 1,
                         "type": "integer",
                         "default": 1,
-                        "description": "Page number (min: 1, max: 10000)",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
+                        "maximum": 100,
+                        "minimum": 1,
                         "type": "integer",
                         "default": 20,
-                        "description": "Page size (min: 1, max: 100)",
+                        "description": "Page size",
                         "name": "pageSize",
                         "in": "query"
                     }
