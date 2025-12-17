@@ -105,7 +105,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Authentication required",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/server.HTTPError"
                         }
@@ -269,7 +269,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Authentication required",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/server.HTTPError"
                         }
@@ -357,7 +357,7 @@ const docTemplate = `{
                         }
                     ],
                     "example": {
-                        "{\"field1\"": " \"error message\"}"
+                        "{\"field\"": "\"field error message\"}"
                     }
                 },
                 "message": {

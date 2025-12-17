@@ -40,7 +40,7 @@ definitions:
         allOf:
         - $ref: '#/definitions/appvalidator.ValidationError'
         example:
-          '{"field1"': ' "error message"}'
+          '{"field"': '"field error message"}'
       message:
         example: error message
         type: string
@@ -148,7 +148,7 @@ paths:
           schema:
             $ref: '#/definitions/server.HTTPValidationError'
         "401":
-          description: Authentication required
+          description: Unauthorized
           schema:
             $ref: '#/definitions/server.HTTPError'
         "500":
@@ -221,7 +221,7 @@ paths:
           schema:
             $ref: '#/definitions/server.HTTPValidationError'
         "401":
-          description: Authentication required
+          description: Unauthorized
           schema:
             $ref: '#/definitions/server.HTTPError'
         "404":

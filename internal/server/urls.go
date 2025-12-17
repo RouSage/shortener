@@ -237,7 +237,7 @@ type PaginatedUrls struct {
 //	@Param			pageSize	query		int				    false	"Page size (min: 1, max: 100)"		default(20)
 //	@Success		200			{object}	PaginatedUrls	    "Paginated list of user URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
-//	@Failure		401			{object}	HTTPError		    "Authentication required"
+//	@Failure		401			{object}	HTTPError		    "Unauthorized"
 //	@Failure		500			{object}	HTTPError		    "Internal server error"
 //	@Security		BearerAuth
 //	@Router			/urls [get]
@@ -305,7 +305,7 @@ type DeleteShortUrlParams struct {
 //	@Param			code	path	string	true	        "Short code to delete"
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
-//	@Failure		401		{object}	HTTPError	        "Authentication required"
+//	@Failure		401		{object}	HTTPError	        "Unauthorized"
 //	@Failure		404		{object}	HTTPError	        "Short URL not found or not owned by user"
 //	@Failure		500		{object}	HTTPError	        "Internal server error"
 //	@Security		BearerAuth

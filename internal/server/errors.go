@@ -15,7 +15,7 @@ type HTTPError struct {
 // HTTPValidationError represents an HTTP error (400) response for swagger documentation
 type HTTPValidationError struct {
 	HTTPError
-	Errors appvalidator.ValidationError `json:"errors" example:"{\"field1\": \"error message\"}"`
+	Errors appvalidator.ValidationError `json:"errors" example:"{\"field\":\"field error message\"}"`
 }
 
 func (s *Server) failedValidationError(c echo.Context, err error) error {
