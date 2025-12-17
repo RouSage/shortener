@@ -108,7 +108,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
-	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
+	e.GET("/swagger/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 	e.GET("/", s.helloWorldHandler)
 	e.GET("/health", s.healthHandler)
 
