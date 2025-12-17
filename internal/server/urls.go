@@ -80,18 +80,16 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			span.RecordError(err)
 
 			if rep.IsDuplicateKeyError(err) {
-				return c.JSON(http.StatusConflict, map[string]any{
-					"message": "Validation failed",
-					"errors": appvalidator.ValidationError{
+				return c.JSON(http.StatusConflict, &HTTPValidationError{
+					HTTPError: HTTPError{Message: "Validation failed"},
+					Errors: appvalidator.ValidationError{
 						"shortCode": "Short code is not available",
 					},
 				})
 			} else if rep.IsCheckConstraintError(err) {
-				return c.JSON(http.StatusConflict, map[string]any{
-					"message": "Validation failed",
-					"errors": appvalidator.ValidationError{
-						"shortCode": "Custom short code could not be created",
-					},
+				return c.JSON(http.StatusConflict, &HTTPValidationError{
+					HTTPError: HTTPError{Message: "Validation failed"},
+					Errors:    appvalidator.ValidationError{"shortCode": "Custom short code could not be created"},
 				})
 			}
 
@@ -125,11 +123,9 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
 		} else if rep.IsCheckConstraintError(err) {
-			return c.JSON(http.StatusConflict, map[string]any{
-				"message": "Validation failed",
-				"errors": appvalidator.ValidationError{
-					"shortCode": "Custom short code could not be created",
-				},
+			return c.JSON(http.StatusConflict, &HTTPValidationError{
+				HTTPError: HTTPError{Message: "Validation failed"},
+				Errors:    appvalidator.ValidationError{"shortCode": "Custom short code could not be created"},
 			})
 		} else {
 			break
