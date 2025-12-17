@@ -93,9 +93,9 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "401": {
@@ -148,9 +148,9 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request body",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "403": {
@@ -210,9 +210,9 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "404": {
@@ -257,9 +257,9 @@
                         "description": "No Content - URL successfully deleted"
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "401": {
@@ -290,6 +290,12 @@
         }
     },
     "definitions": {
+        "appvalidator.ValidationError": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
         "repository.Url": {
             "type": "object",
             "properties": {
@@ -329,6 +335,25 @@
         "server.HTTPError": {
             "type": "object",
             "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "error message"
+                }
+            }
+        },
+        "server.HTTPValidationError": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/appvalidator.ValidationError"
+                        }
+                    ],
+                    "example": {
+                        "{\"field1\"": " \"error message\"}"
+                    }
+                },
                 "message": {
                     "type": "string",
                     "example": "error message"

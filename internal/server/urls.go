@@ -28,7 +28,7 @@ type CreateShortUrlDTO struct {
 //	@Produce		json
 //	@Param			request	body		CreateShortUrlDTO		true	"URL and optional custom short code"
 //	@Success		201		{object}	repository.Url			"Created short URL"
-//	@Failure		400		{object}	HTTPError				"Invalid request body"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		403		{object}	HTTPError				"Custom short codes require authentication"
 //	@Failure		409		{object}	map[string]interface{}	"Short code already taken or validation failed"
 //	@Failure		500		{object}	HTTPError				"Internal server error"
@@ -160,7 +160,7 @@ type GetLongUrlParams struct {
 //	@Produce		json
 //	@Param			code	path		string				true	"Short code"
 //	@Success		200		{object}	map[string]string	"longUrl"
-//	@Failure		400		{object}	HTTPError			"Invalid request parameters"
+//	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		404		{object}	HTTPError			"Short URL not found"
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
@@ -233,12 +233,12 @@ type PaginatedUrls struct {
 //	@Description	Retrieves a paginated list of URLs created by the authenticated user
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			page		query		int				false	"Page number (min: 1, max: 10000)"	default(1)
-//	@Param			pageSize	query		int				false	"Page size (min: 1, max: 100)"		default(20)
-//	@Success		200			{object}	PaginatedUrls	"Paginated list of user URLs"
-//	@Failure		400			{object}	HTTPError		"Invalid request parameters"
-//	@Failure		401			{object}	HTTPError		"Authentication required"
-//	@Failure		500			{object}	HTTPError		"Internal server error"
+//	@Param			page		query		int				    false	"Page number (min: 1, max: 10000)"	default(1)
+//	@Param			pageSize	query		int				    false	"Page size (min: 1, max: 100)"		default(20)
+//	@Success		200			{object}	PaginatedUrls	    "Paginated list of user URLs"
+//	@Failure		400			{object}	HTTPValidationError	"Validation failed"
+//	@Failure		401			{object}	HTTPError		    "Authentication required"
+//	@Failure		500			{object}	HTTPError		    "Internal server error"
 //	@Security		BearerAuth
 //	@Router			/urls [get]
 func (s *Server) getUserUrls(c echo.Context) error {
@@ -302,12 +302,12 @@ type DeleteShortUrlParams struct {
 //	@Description	Deletes a short URL owned by the authenticated user. Also removes it from cache.
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			code	path	string	true	"Short code to delete"
+//	@Param			code	path	string	true	        "Short code to delete"
 //	@Success		204		"No Content - URL successfully deleted"
-//	@Failure		400		{object}	HTTPError	"Invalid request parameters"
-//	@Failure		401		{object}	HTTPError	"Authentication required"
-//	@Failure		404		{object}	HTTPError	"Short URL not found or not owned by user"
-//	@Failure		500		{object}	HTTPError	"Internal server error"
+//	@Failure		400		{object}	HTTPValidationError	"Validation failed"
+//	@Failure		401		{object}	HTTPError	        "Authentication required"
+//	@Failure		404		{object}	HTTPError	        "Short URL not found or not owned by user"
+//	@Failure		500		{object}	HTTPError	        "Internal server error"
 //	@Security		BearerAuth
 //	@Router			/urls/{code} [delete]
 func (s *Server) deletShortUrlHandler(c echo.Context) error {

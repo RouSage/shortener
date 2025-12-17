@@ -99,9 +99,9 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "401": {
@@ -154,9 +154,9 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "403": {
@@ -216,9 +216,9 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "404": {
@@ -263,9 +263,9 @@ const docTemplate = `{
                         "description": "No Content - URL successfully deleted"
                     },
                     "400": {
-                        "description": "Invalid request parameters",
+                        "description": "Validation failed",
                         "schema": {
-                            "$ref": "#/definitions/server.HTTPError"
+                            "$ref": "#/definitions/server.HTTPValidationError"
                         }
                     },
                     "401": {
@@ -296,6 +296,12 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "appvalidator.ValidationError": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
         "repository.Url": {
             "type": "object",
             "properties": {
@@ -335,6 +341,25 @@ const docTemplate = `{
         "server.HTTPError": {
             "type": "object",
             "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "error message"
+                }
+            }
+        },
+        "server.HTTPValidationError": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/appvalidator.ValidationError"
+                        }
+                    ],
+                    "example": {
+                        "{\"field1\"": " \"error message\"}"
+                    }
+                },
                 "message": {
                     "type": "string",
                     "example": "error message"

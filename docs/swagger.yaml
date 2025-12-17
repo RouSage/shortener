@@ -1,5 +1,9 @@
 basePath: /
 definitions:
+  appvalidator.ValidationError:
+    additionalProperties:
+      type: string
+    type: object
   repository.Url:
     properties:
       createdAt:
@@ -26,6 +30,17 @@ definitions:
     type: object
   server.HTTPError:
     properties:
+      message:
+        example: error message
+        type: string
+    type: object
+  server.HTTPValidationError:
+    properties:
+      errors:
+        allOf:
+        - $ref: '#/definitions/appvalidator.ValidationError'
+        example:
+          '{"field1"': ' "error message"}'
       message:
         example: error message
         type: string
@@ -129,9 +144,9 @@ paths:
           schema:
             $ref: '#/definitions/server.PaginatedUrls'
         "400":
-          description: Invalid request parameters
+          description: Validation failed
           schema:
-            $ref: '#/definitions/server.HTTPError'
+            $ref: '#/definitions/server.HTTPValidationError'
         "401":
           description: Authentication required
           schema:
@@ -165,9 +180,9 @@ paths:
           schema:
             $ref: '#/definitions/repository.Url'
         "400":
-          description: Invalid request body
+          description: Validation failed
           schema:
-            $ref: '#/definitions/server.HTTPError'
+            $ref: '#/definitions/server.HTTPValidationError'
         "403":
           description: Custom short codes require authentication
           schema:
@@ -202,9 +217,9 @@ paths:
         "204":
           description: No Content - URL successfully deleted
         "400":
-          description: Invalid request parameters
+          description: Validation failed
           schema:
-            $ref: '#/definitions/server.HTTPError'
+            $ref: '#/definitions/server.HTTPValidationError'
         "401":
           description: Authentication required
           schema:
@@ -241,9 +256,9 @@ paths:
               type: string
             type: object
         "400":
-          description: Invalid request parameters
+          description: Validation failed
           schema:
-            $ref: '#/definitions/server.HTTPError'
+            $ref: '#/definitions/server.HTTPValidationError'
         "404":
           description: Short URL not found
           schema:
