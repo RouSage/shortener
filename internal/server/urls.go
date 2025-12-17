@@ -147,6 +147,9 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 type GetLongUrlParams struct {
 	Code string `param:"code" validate:"required"`
 }
+type GetLongUrlResponse struct {
+	LongUrl string `json:"longUrl"`
+}
 
 // getLongUrlHandler godoc
 //
@@ -155,7 +158,7 @@ type GetLongUrlParams struct {
 //	@Tags			URLs
 //	@Produce		json
 //	@Param			code	path		string				true	"Short code"
-//	@Success		200		{object}	map[string]string	"longUrl"
+//	@Success		200		{object}	GetLongUrlResponse  "longUrl"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		404		{object}	HTTPError			"Short URL not found"
 //	@Failure		500		{object}	HTTPError			"Internal server error"
@@ -207,8 +210,8 @@ func (s *Server) getLongUrlHandler(c echo.Context) error {
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"longUrl": longUrl,
+	return c.JSON(http.StatusOK, &GetLongUrlResponse{
+		LongUrl: longUrl,
 	})
 }
 

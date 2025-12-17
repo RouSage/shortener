@@ -209,10 +209,7 @@ const docTemplate = `{
                     "200": {
                         "description": "longUrl",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/server.GetLongUrlResponse"
                         }
                     },
                     "400": {
@@ -334,6 +331,14 @@ const docTemplate = `{
                     "minLength": 5
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.GetLongUrlResponse": {
+            "type": "object",
+            "properties": {
+                "longUrl": {
                     "type": "string"
                 }
             }

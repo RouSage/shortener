@@ -28,6 +28,11 @@ definitions:
     required:
     - url
     type: object
+  server.GetLongUrlResponse:
+    properties:
+      longUrl:
+        type: string
+    type: object
   server.HTTPError:
     properties:
       message:
@@ -252,9 +257,7 @@ paths:
         "200":
           description: longUrl
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/server.GetLongUrlResponse'
         "400":
           description: Validation failed
           schema:
