@@ -24,6 +24,11 @@ import (
 
 // @host localhost:3001
 // @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
@@ -116,6 +121,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	return e
 }
 
+// helloWorldHandler godoc
+//
+//	@Summary		Hello World
+//	@Description	Returns a simple hello world message
+//	@Tags			General
+//	@Produce		json
+//	@Success		200	{object}	map[string]string	"message: Hello World"
+//	@Router			/ [get]
 func (s *Server) helloWorldHandler(c echo.Context) error {
 	resp := map[string]string{
 		"message": "Hello World",

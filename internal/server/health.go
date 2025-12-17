@@ -11,6 +11,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// healthHandler godoc
+//
+//	@Summary		Health Check
+//	@Description	Returns the health status of the application and database connection statistics
+//	@Tags			Health
+//	@Produce		json
+//	@Success		200	{object}	map[string]string	"status, message, and database statistics"
+//	@Router			/health [get]
 func (s *Server) healthHandler(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

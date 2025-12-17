@@ -19,6 +19,21 @@ type CreateShortUrlDTO struct {
 	URL       string `json:"url" validate:"required,http_url"`
 }
 
+// createShortURLHandler godoc
+//
+//	@Summary		Create Short URL
+//	@Description	Creates a shortened URL. Authenticated users can provide a custom short code (5-16 characters). Otherwise, a random code is generated.
+//	@Tags			URLs
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		CreateShortUrlDTO		true	"URL and optional custom short code"
+//	@Success		201		{object}	repository.Url			"Created short URL"
+//	@Failure		400		{object}	HTTPError				"Invalid request body"
+//	@Failure		403		{object}	HTTPError				"Custom short codes require authentication"
+//	@Failure		409		{object}	map[string]interface{}	"Short code already taken or validation failed"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/urls [post]
 func (s *Server) createShortURLHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateShortURLHandler")
 	defer span.End()
@@ -137,6 +152,19 @@ type GetLongUrlParams struct {
 	Code string `param:"code" validate:"required"`
 }
 
+// getLongUrlHandler godoc
+//
+//	@Summary		Get Long URL
+//	@Description	Retrieves the original long URL for a given short code. Checks cache first, then database.
+//	@Tags			URLs
+//	@Produce		json
+//	@Param			code	path		string				true	"Short code"
+//	@Success		200		{object}	map[string]string	"longUrl"
+//	@Failure		400		{object}	HTTPError			"Invalid request parameters"
+//	@Failure		404		{object}	HTTPError			"Short URL not found"
+//	@Failure		500		{object}	HTTPError			"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/urls/{code} [get]
 func (s *Server) getLongUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
 	defer span.End()
@@ -199,6 +227,20 @@ type PaginatedUrls struct {
 	Pagination Pagination    `json:"pagination"`
 }
 
+// getUserUrls godoc
+//
+//	@Summary		Get User URLs
+//	@Description	Retrieves a paginated list of URLs created by the authenticated user
+//	@Tags			URLs
+//	@Produce		json
+//	@Param			page		query		int				false	"Page number (min: 1, max: 10000)"	default(1)
+//	@Param			pageSize	query		int				false	"Page size (min: 1, max: 100)"		default(20)
+//	@Success		200			{object}	PaginatedUrls	"Paginated list of user URLs"
+//	@Failure		400			{object}	HTTPError		"Invalid request parameters"
+//	@Failure		401			{object}	HTTPError		"Authentication required"
+//	@Failure		500			{object}	HTTPError		"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/urls [get]
 func (s *Server) getUserUrls(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
 	defer span.End()
@@ -254,6 +296,20 @@ type DeleteShortUrlParams struct {
 	GetLongUrlParams
 }
 
+// deletShortUrlHandler godoc
+//
+//	@Summary		Delete Short URL
+//	@Description	Deletes a short URL owned by the authenticated user. Also removes it from cache.
+//	@Tags			URLs
+//	@Produce		json
+//	@Param			code	path	string	true	"Short code to delete"
+//	@Success		204		"No Content - URL successfully deleted"
+//	@Failure		400		{object}	HTTPError	"Invalid request parameters"
+//	@Failure		401		{object}	HTTPError	"Authentication required"
+//	@Failure		404		{object}	HTTPError	"Short URL not found or not owned by user"
+//	@Failure		500		{object}	HTTPError	"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/urls/{code} [delete]
 func (s *Server) deletShortUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "DeleteShortUrlHandler")
 	defer span.End()

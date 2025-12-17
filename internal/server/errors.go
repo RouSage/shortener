@@ -7,6 +7,11 @@ import (
 	"github.com/rousage/shortener/internal/appvalidator"
 )
 
+// HTTPError represents an HTTP error response for swagger documentation
+type HTTPError struct {
+	Message string `json:"message" example:"error message"`
+}
+
 func (s *Server) failedValidationError(c echo.Context, err error) error {
 	if appValidator, ok := c.Echo().Validator.(*appvalidator.AppValidator); ok {
 		validationErrors := appValidator.FormatErrors(err)
