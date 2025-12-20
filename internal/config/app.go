@@ -1,6 +1,11 @@
 package config
 
-import "github.com/rs/zerolog/log"
+import (
+	"errors"
+	"slices"
+
+	"github.com/rs/zerolog/log"
+)
 
 type App struct {
 	Env            string
@@ -8,14 +13,20 @@ type App struct {
 }
 
 const (
+	EnvLocal       = "local"
 	EnvDevelopment = "development"
 	EnvProduction  = "production"
 )
+
+var allowedEnvs = []string{EnvLocal, EnvDevelopment, EnvProduction}
 
 func loadAppConfig() (App, error) {
 	env, err := getEnv("APP_ENV")
 	if err != nil {
 		return App{}, err
+	}
+	if !slices.Contains(allowedEnvs, env) {
+		return App{}, errors.New("invalid environment")
 	}
 
 	shortUrlLength, err := getIntEnv("SHORT_URL_LENGTH")
