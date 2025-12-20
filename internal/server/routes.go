@@ -109,8 +109,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
-	e.GET("/swagger/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
-	e.GET("/", s.helloWorldHandler)
+	e.GET("/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 	e.GET("/health", s.healthHandler)
 	e.GET("/health/metrics", s.healthMetricsHandler)
 
@@ -121,20 +120,4 @@ func (s *Server) RegisterRoutes() http.Handler {
 	urlsApi.DELETE("/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
 
 	return e
-}
-
-// helloWorldHandler godoc
-//
-//	@Summary		Hello World
-//	@Description	Returns a simple hello world message
-//	@Tags			General
-//	@Produce		json
-//	@Success		200	{object}	map[string]string	"message: Hello World"
-//	@Router			/ [get]
-func (s *Server) helloWorldHandler(c echo.Context) error {
-	resp := map[string]string{
-		"message": "Hello World",
-	}
-
-	return c.JSON(http.StatusOK, resp)
 }

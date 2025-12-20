@@ -104,21 +104,6 @@ info:
   title: Shortener API
   version: "1.0"
 paths:
-  /:
-    get:
-      description: Returns a simple hello world message
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 'message: Hello World'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Hello World
-      tags:
-      - General
   /health:
     get:
       description: Returns basic health status of the application
