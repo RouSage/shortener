@@ -15,20 +15,20 @@ import (
 	_ "github.com/rousage/shortener/docs"
 )
 
-// @title Shortener API
-// @version 1.0
-// @description This is URL shortener API
+//	@title			Shortener API
+//	@version		1.0
+//	@description	This is URL shortener API
 
-// @license.name MIT
-// @license.url https://github.com/RouSage/shortener/blob/main/LICENSE
+//	@license.name	MIT
+//	@license.url	https://github.com/RouSage/shortener/blob/main/LICENSE
 
-// @host localhost:3001
-// @BasePath /
+//	@host		localhost:3001
+//	@BasePath	/
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer" followed by a space and JWT token
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()

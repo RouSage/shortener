@@ -158,7 +158,7 @@ type GetLongUrlResponse struct {
 //	@Tags			URLs
 //	@Produce		json
 //	@Param			code	path		string				true	"Short code"
-//	@Success		200		{object}	GetLongUrlResponse  "longUrl"
+//	@Success		200		{object}	GetLongUrlResponse	"longUrl"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		404		{object}	HTTPError			"Short URL not found"
 //	@Failure		500		{object}	HTTPError			"Internal server error"
@@ -232,12 +232,12 @@ type PaginatedUrls struct {
 //	@Description	Retrieves a paginated list of URLs created by the authenticated user
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			page		query		int				    false	"Page number"	      minimum(1) maximum(10000) default(1)
-//	@Param			pageSize	query		int				    false	"Page size"           minimum(1) maximum(100)  default(20)
-//	@Success		200			{object}	PaginatedUrls	    "Paginated list of user URLs"
+//	@Param			page		query		int					false	"Page number"	minimum(1)	maximum(10000)	default(1)
+//	@Param			pageSize	query		int					false	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Success		200			{object}	PaginatedUrls		"Paginated list of user URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
-//	@Failure		401			{object}	HTTPError		    "Unauthorized"
-//	@Failure		500			{object}	HTTPError		    "Internal server error"
+//	@Failure		401			{object}	HTTPError			"Unauthorized"
+//	@Failure		500			{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls [get]
 func (s *Server) getUserUrls(c echo.Context) error {
@@ -301,12 +301,12 @@ type DeleteShortUrlParams struct {
 //	@Description	Deletes a short URL owned by the authenticated user. Also removes it from cache.
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			code	path	string	true	        "Short code to delete"
+//	@Param			code	path	string	true	"Short code to delete"
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
-//	@Failure		401		{object}	HTTPError	        "Unauthorized"
-//	@Failure		404		{object}	HTTPError	        "Short URL not found or not owned by user"
-//	@Failure		500		{object}	HTTPError	        "Internal server error"
+//	@Failure		401		{object}	HTTPError			"Unauthorized"
+//	@Failure		404		{object}	HTTPError			"Short URL not found or not owned by user"
+//	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls/{code} [delete]
 func (s *Server) deletShortUrlHandler(c echo.Context) error {
