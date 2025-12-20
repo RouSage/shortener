@@ -24,6 +24,9 @@ import (
 
 //	@host		localhost:3001
 //	@BasePath	/
+//	@accept		json
+//	@produce	json
+//	@schemes	http https
 
 // @securityDefinitions.apikey	BearerAuth
 // @in							header

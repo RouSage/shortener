@@ -1,4 +1,6 @@
 basePath: /
+consumes:
+- application/json
 definitions:
   appvalidator.ValidationError:
     additionalProperties:
@@ -274,6 +276,11 @@ paths:
       summary: Get Long URL
       tags:
       - URLs
+produces:
+- application/json
+schemes:
+- http
+- https
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token
