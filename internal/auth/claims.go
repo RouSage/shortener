@@ -46,6 +46,10 @@ func GetUserID(c echo.Context) *string {
 	return &claims.RegisteredClaims.Subject
 }
 
+func setClaimsToContext(c echo.Context, claims any) {
+	c.Set(string(ClaimsContextKey), claims)
+}
+
 func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {
 	claims, ok := c.Get(string(ClaimsContextKey)).(*validator.ValidatedClaims)
 	if !ok || claims == nil {
