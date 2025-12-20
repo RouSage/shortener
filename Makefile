@@ -156,3 +156,17 @@ migrate/version:
 		-database "pgx5://$$DB_USERNAME:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_DATABASE?sslmode=disable&search_path=$$DB_SCHEMA" \
 		-path ./internal/database/migrations \
 		version
+
+# ==================================================================================== #
+# SWAGGER
+# ==================================================================================== #
+
+## swagger/generate: generate swagger docs
+.PHONY: swagger/generate
+swagger/generate:
+	go tool swag i -g internal/server/routes.go
+
+## migrate/fmt: format the swag comments
+.PHONY: swagger/fmt
+swagger/fmt:
+	go tool swag fmt

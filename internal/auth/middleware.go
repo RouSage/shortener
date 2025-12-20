@@ -76,7 +76,7 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.ErrUnauthorized
 		}
 
-		c.Set(string(ClaimsContextKey), tokenInfo)
+		setClaimsToContext(c, tokenInfo)
 
 		return next(c)
 	}

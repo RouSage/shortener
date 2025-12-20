@@ -1,0 +1,290 @@
+basePath: /
+consumes:
+- application/json
+definitions:
+  appvalidator.ValidationError:
+    additionalProperties:
+      type: string
+    type: object
+  repository.Url:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      isCustom:
+        type: boolean
+      longUrl:
+        type: string
+      userId:
+        type: string
+    type: object
+  server.CreateShortUrlDTO:
+    properties:
+      shortCode:
+        maxLength: 16
+        minLength: 5
+        type: string
+      url:
+        type: string
+    required:
+    - url
+    type: object
+  server.GetLongUrlResponse:
+    properties:
+      longUrl:
+        type: string
+    type: object
+  server.HTTPError:
+    properties:
+      message:
+        example: error message
+        type: string
+    type: object
+  server.HTTPValidationError:
+    properties:
+      errors:
+        allOf:
+        - $ref: '#/definitions/appvalidator.ValidationError'
+        example:
+          '{"field"': '"field error message"}'
+      message:
+        example: error message
+        type: string
+    type: object
+  server.HealthResponse:
+    properties:
+      environment:
+        example: production
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  server.PaginatedUrls:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/server.UrlResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/server.Pagination'
+    type: object
+  server.Pagination:
+    properties:
+      hasNext:
+        type: boolean
+      hasPrevious:
+        type: boolean
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      totalItems:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  server.UrlResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      isCustom:
+        type: boolean
+      longUrl:
+        type: string
+    type: object
+host: localhost:3001
+info:
+  contact: {}
+  description: This is URL shortener API
+  license:
+    name: MIT
+    url: https://github.com/RouSage/shortener/blob/main/LICENSE
+  title: Shortener API
+  version: "1.0"
+paths:
+  /v1/health:
+    get:
+      description: Returns basic health status of the application
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/server.HealthResponse'
+      summary: Simple Health Check
+      tags:
+      - Health
+  /v1/urls:
+    get:
+      description: Retrieves a paginated list of URLs created by the authenticated
+        user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        maximum: 10000
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of user URLs
+          schema:
+            $ref: '#/definitions/server.PaginatedUrls'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get User URLs
+      tags:
+      - URLs
+    post:
+      consumes:
+      - application/json
+      description: Creates a shortened URL. Authenticated users can provide a custom
+        short code (5-16 characters). Otherwise, a random code is generated.
+      parameters:
+      - description: URL and optional custom short code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.CreateShortUrlDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created short URL
+          schema:
+            $ref: '#/definitions/repository.Url'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "403":
+          description: Custom short codes require authentication
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "409":
+          description: Short code already taken or validation failed
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Create Short URL
+      tags:
+      - URLs
+  /v1/urls/{code}:
+    delete:
+      description: Deletes a short URL owned by the authenticated user. Also removes
+        it from cache.
+      parameters:
+      - description: Short code to delete
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content - URL successfully deleted
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "404":
+          description: Short URL not found or not owned by user
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Delete Short URL
+      tags:
+      - URLs
+    get:
+      description: Retrieves the original long URL for a given short code. Checks
+        cache first, then database.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: longUrl
+          schema:
+            $ref: '#/definitions/server.GetLongUrlResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "404":
+          description: Short URL not found
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get Long URL
+      tags:
+      - URLs
+produces:
+- application/json
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

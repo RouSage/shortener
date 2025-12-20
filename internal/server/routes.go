@@ -8,10 +8,30 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
+
+	_ "github.com/rousage/shortener/docs"
 )
 
+//	@title			Shortener API
+//	@version		1.0
+//	@description	This is URL shortener API
+
+//	@license.name	MIT
+//	@license.url	https://github.com/RouSage/shortener/blob/main/LICENSE
+
+//	@host		localhost:3001
+//	@BasePath	/
+//	@accept		json
+//	@produce	json
+//	@schemes	http https
+
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer" followed by a space and JWT token
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
@@ -69,7 +89,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 			return nil
 		},
 		Skipper: func(c echo.Context) bool {
-			return c.Request().URL.Path == "/health"
+			path := c.Request().URL.Path
+			return path == "/health" || path == "/health/metrics"
 		},
 	}))
 
@@ -91,22 +112,16 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
-	e.GET("/", s.helloWorldHandler)
-	e.GET("/health", s.healthHandler)
+	e.GET("/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 
-	urlsApi := e.Group("/urls", authMw.Authenticate)
-	urlsApi.POST("", s.createShortURLHandler)
-	urlsApi.GET("", s.getUserUrls, authMw.RequireAuthentication)
-	urlsApi.GET("/:code", s.getLongUrlHandler)
-	urlsApi.DELETE("/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
+	v1 := e.Group("/v1", authMw.Authenticate)
+	v1.GET("/health", s.healthHandler)
+	v1.GET("/health/metrics", s.healthMetricsHandler)
+
+	v1.POST("/urls", s.createShortURLHandler)
+	v1.GET("/urls/:code", s.getLongUrlHandler)
+	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication)
+	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
 
 	return e
-}
-
-func (s *Server) helloWorldHandler(c echo.Context) error {
-	resp := map[string]string{
-		"message": "Hello World",
-	}
-
-	return c.JSON(http.StatusOK, resp)
 }
