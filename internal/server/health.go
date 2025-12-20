@@ -23,7 +23,7 @@ type HealthResponse struct {
 //	@Produce		json
 //	@Success		200	{object}	HealthResponse
 //	@Failure		503	{object}	HealthResponse
-//	@Router			/health [get]
+//	@Router			/v1/health [get]
 func (s *Server) healthHandler(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

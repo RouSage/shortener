@@ -33,7 +33,7 @@ type CreateShortUrlDTO struct {
 //	@Failure		409		{object}	map[string]interface{}	"Short code already taken or validation failed"
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
-//	@Router			/urls [post]
+//	@Router			/v1/urls [post]
 func (s *Server) createShortURLHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "CreateShortURLHandler")
 	defer span.End()
@@ -163,7 +163,7 @@ type GetLongUrlResponse struct {
 //	@Failure		404		{object}	HTTPError			"Short URL not found"
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
-//	@Router			/urls/{code} [get]
+//	@Router			/v1/urls/{code} [get]
 func (s *Server) getLongUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
 	defer span.End()
@@ -239,7 +239,7 @@ type PaginatedUrls struct {
 //	@Failure		401			{object}	HTTPError		    "Unauthorized"
 //	@Failure		500			{object}	HTTPError		    "Internal server error"
 //	@Security		BearerAuth
-//	@Router			/urls [get]
+//	@Router			/v1/urls [get]
 func (s *Server) getUserUrls(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
 	defer span.End()
@@ -308,7 +308,7 @@ type DeleteShortUrlParams struct {
 //	@Failure		404		{object}	HTTPError	        "Short URL not found or not owned by user"
 //	@Failure		500		{object}	HTTPError	        "Internal server error"
 //	@Security		BearerAuth
-//	@Router			/urls/{code} [delete]
+//	@Router			/v1/urls/{code} [delete]
 func (s *Server) deletShortUrlHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "DeleteShortUrlHandler")
 	defer span.End()

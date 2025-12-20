@@ -104,7 +104,7 @@ info:
   title: Shortener API
   version: "1.0"
 paths:
-  /health:
+  /v1/health:
     get:
       description: Returns basic health status of the application
       produces:
@@ -121,7 +121,7 @@ paths:
       summary: Simple Health Check
       tags:
       - Health
-  /urls:
+  /v1/urls:
     get:
       description: Retrieves a paginated list of URLs created by the authenticated
         user
@@ -205,7 +205,7 @@ paths:
       summary: Create Short URL
       tags:
       - URLs
-  /urls/{code}:
+  /v1/urls/{code}:
     delete:
       description: Deletes a short URL owned by the authenticated user. Also removes
         it from cache.

@@ -110,14 +110,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
 	e.GET("/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
-	e.GET("/health", s.healthHandler)
-	e.GET("/health/metrics", s.healthMetricsHandler)
 
-	urlsApi := e.Group("/urls", authMw.Authenticate)
-	urlsApi.POST("", s.createShortURLHandler)
-	urlsApi.GET("", s.getUserUrls, authMw.RequireAuthentication)
-	urlsApi.GET("/:code", s.getLongUrlHandler)
-	urlsApi.DELETE("/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
+	v1 := e.Group("/v1", authMw.Authenticate)
+	v1.GET("/health", s.healthHandler)
+	v1.GET("/health/metrics", s.healthMetricsHandler)
+
+	v1.POST("/urls", s.createShortURLHandler)
+	v1.GET("/urls/:code", s.getLongUrlHandler)
+	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication)
+	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
 
 	return e
 }

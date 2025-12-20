@@ -19,7 +19,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/health": {
+        "/v1/health": {
             "get": {
                 "description": "Returns basic health status of the application",
                 "produces": [
@@ -45,7 +45,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/urls": {
+        "/v1/urls": {
             "get": {
                 "description": "Retrieves a paginated list of URLs created by the authenticated user",
                 "produces": [
@@ -170,7 +170,7 @@ const docTemplate = `{
                 ]
             }
         },
-        "/urls/{code}": {
+        "/v1/urls/{code}": {
             "get": {
                 "description": "Retrieves the original long URL for a given short code. Checks cache first, then database.",
                 "produces": [
