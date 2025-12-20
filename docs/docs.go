@@ -381,6 +381,10 @@ const docTemplate = `{
         "server.HealthResponse": {
             "type": "object",
             "properties": {
+                "environment": {
+                    "type": "string",
+                    "example": "production"
+                },
                 "status": {
                     "type": "string",
                     "example": "ok"

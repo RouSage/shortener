@@ -11,7 +11,8 @@ import (
 )
 
 type HealthResponse struct {
-	Status string `json:"status" example:"ok"`
+	Status      string `json:"status" example:"ok"`
+	Environment string `json:"environment" example:"production"`
 }
 
 // healthHandler godoc
@@ -32,12 +33,14 @@ func (s *Server) healthHandler(c echo.Context) error {
 	if err != nil {
 		s.logger.Error().Err(err).Msg("database health check failed")
 		return c.JSON(http.StatusServiceUnavailable, &HealthResponse{
-			Status: "unavailable",
+			Status:      "unavailable",
+			Environment: s.cfg.App.Env,
 		})
 	}
 
 	return c.JSON(http.StatusOK, &HealthResponse{
-		Status: "ok",
+		Status:      "ok",
+		Environment: s.cfg.App.Env,
 	})
 }
 

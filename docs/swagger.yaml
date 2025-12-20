@@ -52,6 +52,9 @@ definitions:
     type: object
   server.HealthResponse:
     properties:
+      environment:
+        example: production
+        type: string
       status:
         example: ok
         type: string
