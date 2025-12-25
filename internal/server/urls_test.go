@@ -230,63 +230,6 @@ func TestGetLongUrlHandler(t *testing.T) {
 	t.Cleanup(cleanup)
 }
 
-func TestGetUserUrlsHandler(t *testing.T) {
-	s, e, cleanup := setupTestServer(t)
-
-	var (
-		userID_1 = "user-id"
-		userID_2 = "user-id-2"
-	)
-
-	for i := range 5 {
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1)
-	}
-
-	tests := []struct {
-		name           string
-		userID         string
-		page           int
-		pageSize       int
-		expectedStatus int
-		expectedUrls   int
-	}{
-		{name: "return user urls", userID: userID_1, page: 1, pageSize: 25, expectedStatus: http.StatusOK, expectedUrls: 5},
-		{name: "return user urls for page=1 and pageSize=3", userID: userID_1, page: 1, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 3},
-		{name: "return user urls for page=2 and pageSize=3", userID: userID_1, page: 2, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 2},
-		{name: "return user urls for page=3 and pageSize=3", userID: userID_1, page: 3, pageSize: 3, expectedStatus: http.StatusOK},
-		{name: "return no urls for user without urls", page: 1, pageSize: 25, userID: userID_2, expectedStatus: http.StatusOK},
-		{name: "error on 0 page", userID: userID_1, page: 0, pageSize: 25, expectedStatus: http.StatusBadRequest},
-		{name: "error on page > max", userID: userID_1, page: 20000, pageSize: 25, expectedStatus: http.StatusBadRequest},
-		{name: "error on 0 pageSize", userID: userID_1, page: 1, pageSize: 0, expectedStatus: http.StatusBadRequest},
-		{name: "error on pageSize > max", userID: userID_1, page: 1, pageSize: 101, expectedStatus: http.StatusBadRequest},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			res := httptest.NewRecorder()
-			c := e.NewContext(req, res)
-			c.SetPath("/urls")
-			c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
-				Subject: tt.userID,
-			}})
-
-			// Assertions
-			err := s.getUserUrls(c)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, res.Code)
-
-			var actual PaginatedUrls
-			err = json.NewDecoder(res.Body).Decode(&actual)
-			require.NoError(t, err, "error decoding response body")
-			assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
-		})
-	}
-
-	t.Cleanup(cleanup)
-}
-
 func TestGetLongUrlHandler_Cache(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
@@ -333,21 +276,102 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 	t.Cleanup(cleanup)
 }
 
+func TestGetUserUrlsHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+
+	var (
+		userID_1 = "user-id"
+		userID_2 = "user-id-2"
+	)
+
+	for i := range 5 {
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1)
+	}
+
+	tests := []struct {
+		name              string
+		userID            string
+		withoutPermission bool
+		page              int
+		pageSize          int
+		expectedStatus    int
+		expectedUrls      int
+	}{
+		{name: "return user urls", userID: userID_1, page: 1, pageSize: 25, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return user urls for page=1 and pageSize=3", userID: userID_1, page: 1, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 3},
+		{name: "return user urls for page=2 and pageSize=3", userID: userID_1, page: 2, pageSize: 3, expectedStatus: http.StatusOK, expectedUrls: 2},
+		{name: "return user urls for page=3 and pageSize=3", userID: userID_1, page: 3, pageSize: 3, expectedStatus: http.StatusOK},
+		{name: "return no urls for user without urls", page: 1, pageSize: 25, userID: userID_2, expectedStatus: http.StatusOK},
+		{name: "error on 0 page", userID: userID_1, page: 0, pageSize: 25, expectedStatus: http.StatusBadRequest},
+		{name: "error on page > max", userID: userID_1, page: 20000, pageSize: 25, expectedStatus: http.StatusBadRequest},
+		{name: "error on 0 pageSize", userID: userID_1, page: 1, pageSize: 0, expectedStatus: http.StatusBadRequest},
+		{name: "error on pageSize > max", userID: userID_1, page: 1, pageSize: 101, expectedStatus: http.StatusBadRequest},
+		{name: "unauthenticated user", page: 1, pageSize: 101, expectedStatus: http.StatusUnauthorized},
+		{name: "no required permission", page: 1, pageSize: 101, userID: userID_1, withoutPermission: true, expectedStatus: http.StatusForbidden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+			c.SetPath("/urls")
+
+			if tt.userID != "" {
+				claims := &validator.ValidatedClaims{
+					RegisteredClaims: validator.RegisteredClaims{Subject: tt.userID},
+					CustomClaims:     &auth.CustomClaims{},
+				}
+				if !tt.withoutPermission {
+					claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.GetOwnURLs)}
+				}
+
+				c.Set(string(auth.ClaimsContextKey), claims)
+			}
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.GetOwnURLs)(s.getUserUrls))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual PaginatedUrls
+				err = json.NewDecoder(res.Body).Decode(&actual)
+				require.NoError(t, err, "error decoding response body")
+				assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
+			}
+
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
 func TestDeleteShortUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
 	userID := "user-id"
 	createdUrl := createShortUrl(t, s, e, "https://example.com", userID)
 
 	tests := []struct {
-		name           string
-		code           string
-		expectedStatus int
-		expectedCache  string
+		name              string
+		code              string
+		userID            string
+		withoutPermission bool
+		expectedStatus    int
 	}{
-		{name: "non-existent code", code: "non-existent", expectedStatus: http.StatusNotFound},
-		{name: "successful delete", code: createdUrl.ID, expectedStatus: http.StatusNoContent},
-		{name: "nothing to delete", code: createdUrl.ID, expectedStatus: http.StatusNotFound},
+		{name: "non-existent code", code: "non-existent", userID: userID, expectedStatus: http.StatusNotFound},
+		{name: "unauthenticated user", code: createdUrl.ID, expectedStatus: http.StatusUnauthorized},
+		{name: "no required permission", code: createdUrl.ID, userID: userID, withoutPermission: true, expectedStatus: http.StatusForbidden},
+		{name: "successful delete", code: createdUrl.ID, userID: userID, expectedStatus: http.StatusNoContent},
+		{name: "nothing to delete", code: createdUrl.ID, userID: userID, expectedStatus: http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
@@ -360,12 +384,23 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 			c.SetPath("/urls/:code")
 			c.SetParamNames("code")
 			c.SetParamValues(tt.code)
-			c.Set(string(auth.ClaimsContextKey), &validator.ValidatedClaims{RegisteredClaims: validator.RegisteredClaims{
-				Subject: userID,
-			}})
+
+			if tt.userID != "" {
+				claims := &validator.ValidatedClaims{
+					RegisteredClaims: validator.RegisteredClaims{Subject: userID},
+					CustomClaims:     &auth.CustomClaims{},
+				}
+				if !tt.withoutPermission {
+					claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.DeleteOwnURLs)}
+				}
+
+				c.Set(string(auth.ClaimsContextKey), claims)
+			}
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.DeleteOwnURLs)(s.deletShortUrlHandler))
 
 			// Assertions
-			err := s.deletShortUrlHandler(c)
+			err := handler(c)
 			if he, ok := err.(*echo.HTTPError); ok {
 				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
@@ -374,9 +409,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 				actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
 				require.NoError(t, err)
-				assert.Equal(t, tt.expectedCache, actualCache, "cache does not match")
+				assert.Equal(t, "", actualCache, "cache does not match")
 			}
-
 		})
 	}
 
