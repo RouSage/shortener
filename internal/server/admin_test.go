@@ -24,34 +24,43 @@ func TestGetURLsHandler(t *testing.T) {
 		userID_2 = "user-id-2"
 	)
 
+	trueVal := true
+	falseVal := false
+
 	for i := range 5 {
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "")
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-one-%d.com", i), userID_1)
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-two-%d.com", i), userID_2)
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "", "")
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-one-%d.com", i), userID_1, "")
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-two-%d.com", i), userID_2, fmt.Sprintf("custom-code-%d", i))
 	}
 
 	tests := []struct {
 		name              string
 		withoutPermission bool
-		page              int
-		pageSize          int
+		filters           URLsFilters
 		expectedStatus    int
 		expectedUrls      int
 	}{
-		{name: "no required permission", page: 1, pageSize: 101, withoutPermission: true, expectedStatus: http.StatusForbidden},
-		{name: "return urls", page: 1, pageSize: 25, expectedStatus: http.StatusOK, expectedUrls: 15},
-		{name: "return urls for page=1 and pageSize=5", page: 1, pageSize: 5, expectedStatus: http.StatusOK, expectedUrls: 5},
-		{name: "return urls for page=3 and pageSize=5", page: 3, pageSize: 5, expectedStatus: http.StatusOK, expectedUrls: 5},
-		{name: "return urls for page=4 and pageSize=5", page: 4, pageSize: 5, expectedStatus: http.StatusOK},
-		{name: "error on 0 page", page: 0, pageSize: 25, expectedStatus: http.StatusBadRequest},
-		{name: "error on page > max", page: 20_000, pageSize: 25, expectedStatus: http.StatusBadRequest},
-		{name: "error on 0 pageSize", page: 1, pageSize: 0, expectedStatus: http.StatusBadRequest},
-		{name: "error on pageSize > max", page: 1, pageSize: 101, expectedStatus: http.StatusBadRequest},
+		{name: "no required permission", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 101}}, withoutPermission: true, expectedStatus: http.StatusForbidden},
+		{name: "return all urls", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 15},
+		{name: "return all custom urls", filters: URLsFilters{IsCustom: &trueVal, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return all generic urls", filters: URLsFilters{IsCustom: &falseVal, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 10},
+		{name: "return urls for page=1 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 5}}, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return urls for page=3 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 3, PageSize: 5}}, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return urls for page=4 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 4, PageSize: 5}}, expectedStatus: http.StatusOK},
+		{name: "error on 0 page", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 0, PageSize: 25}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on page > max", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 20_000, PageSize: 25}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on 0 pageSize", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 0}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on pageSize > max", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 101}}, expectedStatus: http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/admin/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
+			url := fmt.Sprintf("/v1/admin/urls?page=%d&pageSize=%d", tt.filters.Page, tt.filters.PageSize)
+			if tt.filters.IsCustom != nil {
+				url += fmt.Sprintf("&isCustom=%t", *tt.filters.IsCustom)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, url, nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)

@@ -38,13 +38,20 @@ const docTemplate = `{
                 "summary": "Get all URLs",
                 "parameters": [
                     {
+                        "type": "boolean",
+                        "description": "Get custom URLs only",
+                        "name": "isCustom",
+                        "in": "query"
+                    },
+                    {
                         "maximum": 10000,
                         "minimum": 1,
                         "type": "integer",
                         "default": 1,
                         "description": "Page number",
                         "name": "page",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "maximum": 100,
@@ -53,7 +60,8 @@ const docTemplate = `{
                         "default": 20,
                         "description": "Page size",
                         "name": "pageSize",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -139,7 +147,8 @@ const docTemplate = `{
                         "default": 1,
                         "description": "Page number",
                         "name": "page",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "maximum": 100,
@@ -148,7 +157,8 @@ const docTemplate = `{
                         "default": 20,
                         "description": "Page size",
                         "name": "pageSize",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {

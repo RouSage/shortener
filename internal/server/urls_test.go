@@ -184,7 +184,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 
 func TestGetLongUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 
 	tests := []struct {
 		name           string
@@ -232,7 +232,7 @@ func TestGetLongUrlHandler(t *testing.T) {
 
 func TestGetLongUrlHandler_Cache(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 
 	tests := []struct {
 		name           string
@@ -285,7 +285,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 	)
 
 	for i := range 5 {
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1)
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1, "")
 	}
 
 	tests := []struct {
@@ -357,7 +357,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
 	userID := "user-id"
-	createdUrl := createShortUrl(t, s, e, "https://example.com", userID)
+	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")
 
 	tests := []struct {
 		name              string
@@ -459,8 +459,8 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	return s, e, cleanup
 }
 
-func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID string) repository.Url {
-	payload := CreateShortUrlDTO{URL: url}
+func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID string, shortCode string) repository.Url {
+	payload := CreateShortUrlDTO{URL: url, ShortCode: shortCode}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
 

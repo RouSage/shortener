@@ -9,6 +9,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+type URLsFilters struct {
+	PaginationFilters
+	IsCustom *bool `query:"isCustom"`
+}
 type PaginatedURLs struct {
 	Items      []repository.Url `json:"items"`
 	Pagination Pagination       `json:"pagination"`
@@ -20,8 +24,9 @@ type PaginatedURLs struct {
 //	@Description	Retrieves a paginated list of all URLs created by users
 //	@Tags			URLs,Admin
 //	@Produce		json
-//	@Param			page		query		int					false	"Page number"	minimum(1)	maximum(10000)	default(1)
-//	@Param			pageSize	query		int					false	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Param			isCustom	query		bool				false	"Get custom URLs only"
+//	@Param			page		query		int					true	"Page number"	minimum(1)	maximum(10000)	default(1)
+//	@Param			pageSize	query		int					true	"Page size"		minimum(1)	maximum(100)	default(20)
 //	@Success		200			{object}	PaginatedURLs		"Paginated list of URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401			{object}	HTTPError			"Unauthorized"
@@ -33,7 +38,7 @@ func (s *Server) getURLs(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.GetURLs")
 	defer span.End()
 
-	params := new(PaginationFilters)
+	params := new(URLsFilters)
 	if err := c.Bind(params); err != nil {
 		span.SetStatus(codes.Error, "failed to bind request")
 		span.RecordError(err)
@@ -42,11 +47,14 @@ func (s *Server) getURLs(c echo.Context) error {
 	if err := c.Validate(params); err != nil {
 		return s.failedValidationError(c, err)
 	}
+
 	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
+	if params.IsCustom != nil {
+		span.SetAttributes(attribute.Bool("isCustom", *params.IsCustom))
+	}
 
 	var rep = repository.New(s.db)
-
-	urls, err := rep.GetURLs(ctx, repository.GetURLsParams{Limit: params.limit(), Offset: params.offset()})
+	urls, err := rep.GetURLs(ctx, repository.GetURLsParams{IsCustom: params.IsCustom, Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get urls")
 		span.RecordError(err)

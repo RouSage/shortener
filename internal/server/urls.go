@@ -232,8 +232,8 @@ type PaginatedUserURLs struct {
 //	@Description	Retrieves a paginated list of URLs created by the authenticated user
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			page		query		int					false	"Page number"	minimum(1)	maximum(10000)	default(1)
-//	@Param			pageSize	query		int					false	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Param			page		query		int					true	"Page number"	minimum(1)	maximum(10000)	default(1)
+//	@Param			pageSize	query		int					true	"Page size"		minimum(1)	maximum(100)	default(20)
 //	@Success		200			{object}	PaginatedUserURLs	"Paginated list of user URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401			{object}	HTTPError			"Unauthorized"

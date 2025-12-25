@@ -20,17 +20,23 @@ SELECT
   COUNT(*) OVER () as total_count
 FROM
   urls
+WHERE
+  (
+    $1::boolean IS NULL
+    OR is_custom = $1::boolean
+  )
 ORDER BY
   created_at DESC
 LIMIT
-  $2
+  $3
 OFFSET
-  $1
+  $2
 `
 
 type GetURLsParams struct {
-	Offset int32 `json:"offset"`
-	Limit  int32 `json:"limit"`
+	IsCustom *bool `json:"isCustom"`
+	Offset   int32 `json:"offset"`
+	Limit    int32 `json:"limit"`
 }
 
 type GetURLsRow struct {
@@ -53,14 +59,19 @@ type GetURLsRow struct {
 //	  COUNT(*) OVER () as total_count
 //	FROM
 //	  urls
+//	WHERE
+//	  (
+//	    $1::boolean IS NULL
+//	    OR is_custom = $1::boolean
+//	  )
 //	ORDER BY
 //	  created_at DESC
 //	LIMIT
-//	  $2
+//	  $3
 //	OFFSET
-//	  $1
+//	  $2
 func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow, error) {
-	rows, err := q.db.Query(ctx, getURLs, arg.Offset, arg.Limit)
+	rows, err := q.db.Query(ctx, getURLs, arg.IsCustom, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

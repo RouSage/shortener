@@ -8,6 +8,11 @@ SELECT
   COUNT(*) OVER () as total_count
 FROM
   urls
+WHERE
+  (
+    sqlc.narg ('is_custom')::boolean IS NULL
+    OR is_custom = sqlc.narg ('is_custom')::boolean
+  )
 ORDER BY
   created_at DESC
 LIMIT
