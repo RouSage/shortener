@@ -120,8 +120,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	v1.POST("/urls", s.createShortURLHandler)
 	v1.GET("/urls/:code", s.getLongUrlHandler)
-	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication)
-	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication)
+	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication, authMw.RequirePermission(auth.GetOwnURLs))
+	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication, authMw.RequirePermission(auth.DeleteOwnURLs))
 
 	return e
 }

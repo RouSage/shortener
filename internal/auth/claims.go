@@ -11,14 +11,24 @@ import (
 )
 
 type contextKey string
+type permission string
 
 const (
 	ClaimsContextKey contextKey = "claims"
+
+	// Permissions
+	CreateURLs    permission = "create:urls"
+	DeleteURLs    permission = "delete:urls"
+	DeleteOwnURLs permission = "delete:own-urls"
+	GetOwnURLs    permission = "get:own-urls"
+	GetURL        permission = "get:url"
+	GetURLs       permission = "get:urls"
 )
 
 // CustomClaims contains custom data we want from the token
 type CustomClaims struct {
-	Scope string `json:"scope"`
+	Scope       string   `json:"scope"`
+	Permissions []string `json:"permissions"`
 }
 
 // Validate does nothing, but we need it to satisfy validator.CustomClaims interface
@@ -30,6 +40,11 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 func (c CustomClaims) HasScope(expectedScope string) bool {
 	result := strings.Split(c.Scope, " ")
 	return slices.Contains(result, expectedScope)
+}
+
+// HasPermission checks whether claims have a specific permission
+func (c CustomClaims) HasPermission(expectedPermission permission) bool {
+	return slices.Contains(c.Permissions, string(expectedPermission))
 }
 
 func GetUserID(c echo.Context) *string {
@@ -57,4 +72,18 @@ func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {
 	}
 
 	return claims
+}
+
+func getCustomClaimsFromContext(c echo.Context) *CustomClaims {
+	claims := getClaimsFromContext(c)
+	if claims == nil {
+		return nil
+	}
+
+	customClaims, ok := claims.CustomClaims.(*CustomClaims)
+	if !ok {
+		return nil
+	}
+
+	return customClaims
 }
