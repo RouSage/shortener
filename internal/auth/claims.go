@@ -22,6 +22,7 @@ const (
 	DeleteOwnURLs permission = "delete:own-urls"
 	GetOwnURLs    permission = "get:own-urls"
 	GetURL        permission = "get:url"
+	GetURLs       permission = "get:urls"
 )
 
 // CustomClaims contains custom data we want from the token
