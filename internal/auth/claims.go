@@ -18,7 +18,8 @@ const (
 
 // CustomClaims contains custom data we want from the token
 type CustomClaims struct {
-	Scope string `json:"scope"`
+	Scope       string   `json:"scope"`
+	Permissions []string `json:"permissions"`
 }
 
 // Validate does nothing, but we need it to satisfy validator.CustomClaims interface
