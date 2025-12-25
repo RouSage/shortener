@@ -341,7 +341,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
 
-				var actual PaginatedUrls
+				var actual PaginatedUserURLs
 				err = json.NewDecoder(res.Body).Decode(&actual)
 				require.NoError(t, err, "error decoding response body")
 				assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
