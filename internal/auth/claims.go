@@ -14,6 +14,13 @@ type contextKey string
 
 const (
 	ClaimsContextKey contextKey = "claims"
+
+	// Permissions
+	CreateURLs    = "create:urls"
+	DeleteURLs    = "delete:urls"
+	DeleteOwnURLs = "delete:own-urls"
+	GetOwnURLs    = "get:own-urls"
+	GetURL        = "get:url"
 )
 
 // CustomClaims contains custom data we want from the token
@@ -31,6 +38,11 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 func (c CustomClaims) HasScope(expectedScope string) bool {
 	result := strings.Split(c.Scope, " ")
 	return slices.Contains(result, expectedScope)
+}
+
+// HasPermission checks whether claims have a specific permission
+func (c CustomClaims) HasPermission(expectedPermission string) bool {
+	return slices.Contains(c.Permissions, expectedPermission)
 }
 
 func GetUserID(c echo.Context) *string {
