@@ -13,7 +13,9 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var tracer = otel.Tracer("github.com/rousage/shortener/internal/auth")
@@ -94,5 +96,27 @@ func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.Handl
 		}
 
 		return next(c)
+	}
+}
+
+func (m *AuthMiddleware) RequirePermission(permission permission) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			_, span := tracer.Start(c.Request().Context(), "auth.RequirePermission")
+			defer span.End()
+
+			claims := getCustomClaimsFromContext(c)
+			if claims == nil {
+				span.AddEvent("no claims found")
+				return echo.ErrUnauthorized
+			}
+
+			if !claims.HasPermission(permission) {
+				span.AddEvent("user does not have sufficient permission", trace.WithAttributes(attribute.String("permission", string(permission))))
+				return echo.ErrForbidden
+			}
+
+			return next(c)
+		}
 	}
 }
