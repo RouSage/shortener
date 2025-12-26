@@ -29,7 +29,7 @@ services:
         networks:
             - app_network
     db:
-        image: postgres:latest
+        image: postgres:17.7
         restart: unless-stopped
         environment:
             POSTGRES_DB: ${DB_DATABASE}

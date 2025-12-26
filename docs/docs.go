@@ -25,6 +25,91 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/admin/urls": {
+            "get": {
+                "description": "Retrieves a paginated list of all URLs created by users",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get all URLs",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Get custom URLs only",
+                        "name": "isCustom",
+                        "in": "query"
+                    },
+                    {
+                        "maxLength": 50,
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Get URLs created by a specific user",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of URLs",
+                        "schema": {
+                            "$ref": "#/definitions/server.PaginatedURLs"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPValidationError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1/health": {
             "get": {
                 "description": "Returns basic health status of the application",
@@ -69,7 +154,8 @@ const docTemplate = `{
                         "default": 1,
                         "description": "Page number",
                         "name": "page",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "maximum": 100,
@@ -78,14 +164,15 @@ const docTemplate = `{
                         "default": 20,
                         "description": "Page size",
                         "name": "pageSize",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "Paginated list of user URLs",
                         "schema": {
-                            "$ref": "#/definitions/server.PaginatedUrls"
+                            "$ref": "#/definitions/server.PaginatedUserURLs"
                         }
                     },
                     "400": {
@@ -96,6 +183,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/server.HTTPError"
                         }
@@ -261,6 +354,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/server.HTTPError"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Short URL not found or not owned by user",
                         "schema": {
@@ -374,13 +473,27 @@ const docTemplate = `{
                 }
             }
         },
-        "server.PaginatedUrls": {
+        "server.PaginatedURLs": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/server.UrlResponse"
+                        "$ref": "#/definitions/repository.Url"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/server.Pagination"
+                }
+            }
+        },
+        "server.PaginatedUserURLs": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.URLResponse"
                     }
                 },
                 "pagination": {
@@ -411,7 +524,7 @@ const docTemplate = `{
                 }
             }
         },
-        "server.UrlResponse": {
+        "server.URLResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {

@@ -61,11 +61,20 @@ definitions:
         example: ok
         type: string
     type: object
-  server.PaginatedUrls:
+  server.PaginatedURLs:
     properties:
       items:
         items:
-          $ref: '#/definitions/server.UrlResponse'
+          $ref: '#/definitions/repository.Url'
+        type: array
+      pagination:
+        $ref: '#/definitions/server.Pagination'
+    type: object
+  server.PaginatedUserURLs:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/server.URLResponse'
         type: array
       pagination:
         $ref: '#/definitions/server.Pagination'
@@ -85,7 +94,7 @@ definitions:
       totalPages:
         type: integer
     type: object
-  server.UrlResponse:
+  server.URLResponse:
     properties:
       createdAt:
         type: string
@@ -106,6 +115,64 @@ info:
   title: Shortener API
   version: "1.0"
 paths:
+  /v1/admin/urls:
+    get:
+      description: Retrieves a paginated list of all URLs created by users
+      parameters:
+      - description: Get custom URLs only
+        in: query
+        name: isCustom
+        type: boolean
+      - description: Get URLs created by a specific user
+        in: query
+        maxLength: 50
+        minLength: 1
+        name: userId
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        maximum: 10000
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        maximum: 100
+        minimum: 1
+        name: pageSize
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of URLs
+          schema:
+            $ref: '#/definitions/server.PaginatedURLs'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Get all URLs
+      tags:
+      - Admin
   /v1/health:
     get:
       description: Returns basic health status of the application
@@ -134,6 +201,7 @@ paths:
         maximum: 10000
         minimum: 1
         name: page
+        required: true
         type: integer
       - default: 20
         description: Page size
@@ -141,6 +209,7 @@ paths:
         maximum: 100
         minimum: 1
         name: pageSize
+        required: true
         type: integer
       produces:
       - application/json
@@ -148,13 +217,17 @@ paths:
         "200":
           description: Paginated list of user URLs
           schema:
-            $ref: '#/definitions/server.PaginatedUrls'
+            $ref: '#/definitions/server.PaginatedUserURLs'
         "400":
           description: Validation failed
           schema:
             $ref: '#/definitions/server.HTTPValidationError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/server.HTTPError'
         "500":
@@ -228,6 +301,10 @@ paths:
             $ref: '#/definitions/server.HTTPValidationError'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/server.HTTPError'
         "404":

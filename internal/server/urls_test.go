@@ -47,7 +47,7 @@ func TestCreateShortURLHandler(t *testing.T) {
 			body, err := json.Marshal(tt.payload)
 			require.NoError(t, err, "could not marshal payload")
 
-			req := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/v1/urls", bytes.NewBuffer(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
@@ -78,7 +78,7 @@ func TestCreateShortURLHandler_IdenticalURLs(t *testing.T) {
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
 
-	req1 := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+	req1 := httptest.NewRequest(http.MethodPost, "/v1/urls", bytes.NewBuffer(body))
 	req1.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	resp1 := httptest.NewRecorder()
 	c1 := e.NewContext(req1, resp1)
@@ -146,7 +146,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 			body, err := json.Marshal(tt.payload)
 			require.NoError(t, err, "could not marshal payload")
 
-			req := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/v1/urls", bytes.NewBuffer(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
@@ -184,7 +184,7 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 
 func TestGetLongUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 
 	tests := []struct {
 		name           string
@@ -199,11 +199,11 @@ func TestGetLongUrlHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls/%s", tt.code), nil)
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/urls/%s", tt.code), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
-			c.SetPath("/urls/:code")
+			c.SetPath("/v1/urls/:code")
 			c.SetParamNames("code")
 			c.SetParamValues(tt.code)
 
@@ -232,7 +232,7 @@ func TestGetLongUrlHandler(t *testing.T) {
 
 func TestGetLongUrlHandler_Cache(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	createdUrl := createShortUrl(t, s, e, "https://example.com", "")
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 
 	tests := []struct {
 		name           string
@@ -248,11 +248,11 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls/%s", tt.code), nil)
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/urls/%s", tt.code), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
-			c.SetPath("/urls/:code")
+			c.SetPath("/v1/urls/:code")
 			c.SetParamNames("code")
 			c.SetParamValues(tt.code)
 
@@ -269,7 +269,6 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 			err = json.NewDecoder(res.Body).Decode(&actual)
 			require.NoError(t, err, "error decoding response body")
 			assert.Equal(t, tt.expectedUrl, actual["longUrl"], "long URL does not match")
-
 		})
 	}
 
@@ -286,7 +285,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 	)
 
 	for i := range 5 {
-		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1)
+		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), userID_1, "")
 	}
 
 	tests := []struct {
@@ -313,11 +312,11 @@ func TestGetUserUrlsHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/urls?page=%d&pageSize=%d", tt.page, tt.pageSize), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
-			c.SetPath("/urls")
+			c.SetPath("/v1/urls")
 
 			if tt.userID != "" {
 				claims := &validator.ValidatedClaims{
@@ -341,7 +340,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
 
-				var actual PaginatedUrls
+				var actual PaginatedUserURLs
 				err = json.NewDecoder(res.Body).Decode(&actual)
 				require.NoError(t, err, "error decoding response body")
 				assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
@@ -358,7 +357,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
 	userID := "user-id"
-	createdUrl := createShortUrl(t, s, e, "https://example.com", userID)
+	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")
 
 	tests := []struct {
 		name              string
@@ -376,12 +375,12 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/urls/%s", tt.code), nil)
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/urls/%s", tt.code), nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 
 			c := e.NewContext(req, res)
-			c.SetPath("/urls/:code")
+			c.SetPath("/v1/urls/:code")
 			c.SetParamNames("code")
 			c.SetParamValues(tt.code)
 
@@ -460,12 +459,12 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	return s, e, cleanup
 }
 
-func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID string) repository.Url {
-	payload := CreateShortUrlDTO{URL: url}
+func createShortUrl(t *testing.T, s *Server, e *echo.Echo, url string, userID string, shortCode string) repository.Url {
+	payload := CreateShortUrlDTO{URL: url, ShortCode: shortCode}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err, "could not marshal payload")
 
-	createReq := httptest.NewRequest(http.MethodPost, "/urls", bytes.NewBuffer(body))
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/urls", bytes.NewBuffer(body))
 	createReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	createRes := httptest.NewRecorder()
 	createCtx := e.NewContext(createReq, createRes)

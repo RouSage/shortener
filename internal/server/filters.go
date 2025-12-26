@@ -1,15 +1,15 @@
 package server
 
-type Filters struct {
+type PaginationFilters struct {
 	Page     int32 `query:"page" validate:"min=1,max=10000"`
 	PageSize int32 `query:"pageSize" validate:"min=1,max=100"`
 }
 
-func (f Filters) limit() int32 {
+func (f PaginationFilters) limit() int32 {
 	return f.PageSize
 }
 
-func (f Filters) offset() int32 {
+func (f PaginationFilters) offset() int32 {
 	return (f.Page - 1) * f.PageSize
 }
 

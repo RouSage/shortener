@@ -215,14 +215,14 @@ func (s *Server) getLongUrlHandler(c echo.Context) error {
 	})
 }
 
-type UrlResponse struct {
+type URLResponse struct {
 	ID        string    `json:"id"`
 	LongUrl   string    `json:"longUrl"`
 	CreatedAt time.Time `json:"createdAt"`
 	IsCustom  bool      `json:"isCustom"`
 }
-type PaginatedUrls struct {
-	Items      []UrlResponse `json:"items"`
+type PaginatedUserURLs struct {
+	Items      []URLResponse `json:"items"`
 	Pagination Pagination    `json:"pagination"`
 }
 
@@ -232,11 +232,12 @@ type PaginatedUrls struct {
 //	@Description	Retrieves a paginated list of URLs created by the authenticated user
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			page		query		int					false	"Page number"	minimum(1)	maximum(10000)	default(1)
-//	@Param			pageSize	query		int					false	"Page size"		minimum(1)	maximum(100)	default(20)
-//	@Success		200			{object}	PaginatedUrls		"Paginated list of user URLs"
+//	@Param			page		query		int					true	"Page number"	minimum(1)	maximum(10000)	default(1)
+//	@Param			pageSize	query		int					true	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Success		200			{object}	PaginatedUserURLs	"Paginated list of user URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401			{object}	HTTPError			"Unauthorized"
+//	@Failure		403			{object}	HTTPError			"Forbidden"
 //	@Failure		500			{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls [get]
@@ -244,7 +245,7 @@ func (s *Server) getUserUrls(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
 	defer span.End()
 
-	params := new(Filters)
+	params := new(PaginationFilters)
 	if err := c.Bind(params); err != nil {
 		span.SetStatus(codes.Error, "failed to bind request")
 		span.RecordError(err)
@@ -273,9 +274,9 @@ func (s *Server) getUserUrls(c echo.Context) error {
 		totalCount = int(urls[0].TotalCount)
 	}
 
-	items := make([]UrlResponse, len(urls))
+	items := make([]URLResponse, len(urls))
 	for i, url := range urls {
-		items[i] = UrlResponse{
+		items[i] = URLResponse{
 			ID:        url.ID,
 			LongUrl:   url.LongUrl,
 			CreatedAt: url.CreatedAt,
@@ -283,7 +284,7 @@ func (s *Server) getUserUrls(c echo.Context) error {
 		}
 	}
 
-	response := &PaginatedUrls{
+	response := &PaginatedUserURLs{
 		Items:      items,
 		Pagination: calculatePagination(totalCount, int(params.Page), int(params.PageSize)),
 	}
@@ -305,6 +306,7 @@ type DeleteShortUrlParams struct {
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401		{object}	HTTPError			"Unauthorized"
+//	@Failure		403		{object}	HTTPError			"Forbidden"
 //	@Failure		404		{object}	HTTPError			"Short URL not found or not owned by user"
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
