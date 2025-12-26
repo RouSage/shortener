@@ -51,9 +51,9 @@ func (suite *AdminTestSuite) SetupTest() {
 	db := database.Connect(logger, suite.container.DatabaseConfig)
 	queries := New(db)
 
-	// Populate the DB with some data
+	// Populate the DB with some data for each test
 	urlParams := []CreateUrlParams{
-		{ID: "short-urll", LongUrl: "https://long.url", UserID: &userID_1, IsCustom: true},
+		{ID: "short-url1", LongUrl: "https://long.url", UserID: &userID_1, IsCustom: true},
 		{ID: "short-url2", LongUrl: "https://long.url", UserID: &userID_1},
 		{ID: "short-url3", LongUrl: "https://long.url", UserID: &userID_1},
 		{ID: "short-url4", LongUrl: "https://long.url", UserID: &userID_1},
@@ -113,22 +113,28 @@ func (suite *AdminTestSuite) TestGetURLs() {
 	}
 }
 
-// func (suite *AdminTestSuite) TestDeleteShortUrl() {
-// 	t := suite.T()
+func (suite *AdminTestSuite) TestDeleteShortUrl() {
+	t := suite.T()
 
-// 	userId := "user-id"
+	tests := []struct {
+		name                 string
+		id                   string
+		userId               string
+		expectedRowsAffected int64
+	}{
+		{name: "delete non-existing url", id: "short-url", userId: "user-id", expectedRowsAffected: int64(0)},
+		{name: "delete existing url", id: "short-url1", expectedRowsAffected: int64(1)},
+		{name: "delete the same url again", id: "short-url1", expectedRowsAffected: int64(0)},
+	}
 
-// 	rowsAffected, err := suite.queries.DeleteUserURL(suite.ctx, DeleteUserURLParams{ID: "short-url", UserID: &userId})
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, int64(0), rowsAffected)
-
-// 	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://long.url", UserID: &userId})
-// 	assert.NoError(t, err)
-
-// 	rowsAffected, err = suite.queries.DeleteUserURL(suite.ctx, DeleteUserURLParams{ID: "short-url", UserID: &userId})
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, int64(1), rowsAffected)
-// }
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rowsAffected, err := suite.queries.DeleteURL(suite.ctx, tt.id)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedRowsAffected, rowsAffected)
+		})
+	}
+}
 
 func TestAdminTestSuite(t *testing.T) {
 	suite.Run(t, new(AdminTestSuite))
