@@ -65,6 +65,29 @@ func (c *Cache) DeleteLongURL(ctx context.Context, code string) (int64, error) {
 	return resp, nil
 }
 
+func (c *Cache) DeleteLongURLs(ctx context.Context, codes []string) (int64, error) {
+	ctx, span := tracer.Start(ctx, "cache.DeleteLongURLs")
+	defer span.End()
+
+	keys := make([]string, len(codes))
+	for _, code := range codes {
+		keys = append(keys, c.getUrlKey(code))
+	}
+	span.SetAttributes(attribute.StringSlice("keys", keys))
+
+	if len(keys) == 0 {
+		return 0, nil
+	}
+
+	resp, err := c.client.Del(ctx, keys)
+	if err != nil {
+		span.RecordError(err)
+		return 0, err
+	}
+
+	return resp, nil
+}
+
 func (c *Cache) getUrlKey(code string) string {
 	return fmt.Sprintf("long_url:%s", code)
 }
