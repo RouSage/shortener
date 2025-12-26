@@ -34,7 +34,7 @@ WHERE
 LIMIT
   1;
 
--- name: DeleteUrl :execrows
+-- name: DeleteUserURL :execrows
 DELETE FROM urls
 WHERE
   id = $1

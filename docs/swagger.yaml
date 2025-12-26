@@ -173,6 +173,45 @@ paths:
       summary: Get all URLs
       tags:
       - Admin
+  /v1/admin/urls/{code}:
+    delete:
+      description: Deletes a URL. Also removes it from cache.
+      parameters:
+      - description: Short code of the URL
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content - URL successfully deleted
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "404":
+          description: Short URL not found
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Delete URL
+      tags:
+      - Admin
   /v1/health:
     get:
       description: Returns basic health status of the application

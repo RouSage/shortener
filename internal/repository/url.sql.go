@@ -52,26 +52,26 @@ func (q *Queries) CreateUrl(ctx context.Context, arg CreateUrlParams) (Url, erro
 	return i, err
 }
 
-const deleteUrl = `-- name: DeleteUrl :execrows
+const deleteUserURL = `-- name: DeleteUserURL :execrows
 DELETE FROM urls
 WHERE
   id = $1
   AND user_id = $2
 `
 
-type DeleteUrlParams struct {
+type DeleteUserURLParams struct {
 	ID     string  `json:"id"`
 	UserID *string `json:"userId"`
 }
 
-// DeleteUrl
+// DeleteUserURL
 //
 //	DELETE FROM urls
 //	WHERE
 //	  id = $1
 //	  AND user_id = $2
-func (q *Queries) DeleteUrl(ctx context.Context, arg DeleteUrlParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteUrl, arg.ID, arg.UserID)
+func (q *Queries) DeleteUserURL(ctx context.Context, arg DeleteUserURLParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteUserURL, arg.ID, arg.UserID)
 	if err != nil {
 		return 0, err
 	}

@@ -49,8 +49,8 @@ func (c *Cache) GetLongUrl(ctx context.Context, code string) (string, error) {
 	return resp.Value(), nil
 }
 
-func (c *Cache) DeleteLongUrl(ctx context.Context, code string) (int64, error) {
-	ctx, span := tracer.Start(ctx, "cache.DeleteLongUrl")
+func (c *Cache) DeleteLongURL(ctx context.Context, code string) (int64, error) {
+	ctx, span := tracer.Start(ctx, "cache.DeleteLongURL")
 	defer span.End()
 
 	key := c.getUrlKey(code)

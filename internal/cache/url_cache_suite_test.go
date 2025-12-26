@@ -112,19 +112,19 @@ func (suite *UrlTestSuite) TestGetLongUrl() {
 func (suite *UrlTestSuite) TestDeleteLongUrl() {
 	code := "short-url"
 
-	removedKeys, err := suite.cache.DeleteLongUrl(suite.ctx, code)
+	removedKeys, err := suite.cache.DeleteLongURL(suite.ctx, code)
 	suite.NoError(err)
 	suite.Empty(removedKeys, "expected to delete nothing, but deleted actual keys")
 
 	_, err = suite.cache.SetLongUrl(suite.ctx, code, "https://long.url")
 	suite.NoError(err)
 
-	removedKeys, err = suite.cache.DeleteLongUrl(suite.ctx, code)
+	removedKeys, err = suite.cache.DeleteLongURL(suite.ctx, code)
 	suite.NoError(err)
 	suite.Equal(int64(1), removedKeys, "expected to delete 1 key")
 
 	// Make sure the deletion of the same key is idempotent
-	removedKeys, err = suite.cache.DeleteLongUrl(suite.ctx, code)
+	removedKeys, err = suite.cache.DeleteLongURL(suite.ctx, code)
 	suite.NoError(err)
 	suite.Empty(removedKeys, "expected to delete nothing the second time")
 }

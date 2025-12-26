@@ -125,6 +125,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	admin := v1.Group("/admin", authMw.RequireAuthentication)
 	admin.GET("/urls", s.getURLs, authMw.RequirePermission(auth.GetURLs))
+	admin.DELETE("/urls/:code", s.deleteURLHandler, authMw.RequirePermission(auth.DeleteURLs))
 
 	return e
 }
