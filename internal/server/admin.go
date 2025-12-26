@@ -23,7 +23,7 @@ type PaginatedURLs struct {
 //
 //	@Summary		Get all URLs
 //	@Description	Retrieves a paginated list of all URLs created by users
-//	@Tags			URLs,Admin
+//	@Tags			Admin
 //	@Produce		json
 //	@Param			isCustom	query		bool				false	"Get custom URLs only"
 //	@Param			userId		query		string				false	"Get URLs created by a specific user"	minlength(1)	maxlength(50)

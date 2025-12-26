@@ -32,7 +32,6 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "URLs",
                     "Admin"
                 ],
                 "summary": "Get all URLs",

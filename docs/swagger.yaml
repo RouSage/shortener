@@ -172,7 +172,6 @@ paths:
       - BearerAuth: []
       summary: Get all URLs
       tags:
-      - URLs
       - Admin
   /v1/health:
     get:
