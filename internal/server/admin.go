@@ -92,6 +92,10 @@ func (s *Server) getURLs(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+type DeleteURLParams struct {
+	GetLongUrlParams
+}
+
 // deleteURLHandler godoc
 //
 //	@Summary		Delete URL
@@ -111,7 +115,7 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteURLHandler")
 	defer span.End()
 
-	params := new(DeleteShortUrlParams)
+	params := new(DeleteURLParams)
 	if err := c.Bind(params); err != nil {
 		span.SetStatus(codes.Error, "failed to bind request")
 		span.RecordError(err)
