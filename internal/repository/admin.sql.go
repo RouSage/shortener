@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
-const deleteAllUserURLs = `-- name: DeleteAllUserURLs :execrows
+const deleteAllUserURLs = `-- name: DeleteAllUserURLs :many
 DELETE FROM urls
 WHERE
   user_id = $1::text
+RETURNING
+  id
 `
 
 // DeleteAllUserURLs
@@ -21,12 +23,26 @@ WHERE
 //	DELETE FROM urls
 //	WHERE
 //	  user_id = $1::text
-func (q *Queries) DeleteAllUserURLs(ctx context.Context, userID string) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAllUserURLs, userID)
+//	RETURNING
+//	  id
+func (q *Queries) DeleteAllUserURLs(ctx context.Context, userID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, deleteAllUserURLs, userID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteURL = `-- name: DeleteURL :execrows

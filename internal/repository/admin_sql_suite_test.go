@@ -142,19 +142,19 @@ func (suite *AdminTestSuite) TestDeleteAllUserURLs() {
 	tests := []struct {
 		name                 string
 		userId               string
-		expectedRowsAffected int64
+		expectedRowsAffected int
 	}{
-		{name: "delete all user 1 urls", userId: userID_1, expectedRowsAffected: int64(5)},
-		{name: "delete all user 2 urls", userId: userID_2, expectedRowsAffected: int64(2)},
-		{name: "nothing to delete for user 1", userId: userID_1, expectedRowsAffected: int64(0)},
-		{name: "nothing to delete for user 2", userId: userID_2, expectedRowsAffected: int64(0)},
+		{name: "delete all user 1 urls", userId: userID_1, expectedRowsAffected: 5},
+		{name: "delete all user 2 urls", userId: userID_2, expectedRowsAffected: 2},
+		{name: "nothing to delete for user 1", userId: userID_1, expectedRowsAffected: 0},
+		{name: "nothing to delete for user 2", userId: userID_2, expectedRowsAffected: 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rowsAffected, err := suite.queries.DeleteAllUserURLs(suite.ctx, tt.userId)
+			deletedRows, err := suite.queries.DeleteAllUserURLs(suite.ctx, tt.userId)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedRowsAffected, rowsAffected)
+			assert.Equal(t, tt.expectedRowsAffected, len(deletedRows))
 		})
 	}
 }
