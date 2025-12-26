@@ -92,13 +92,17 @@ func (s *Server) getURLs(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+type DeleteURLParams struct {
+	GetLongUrlParams
+}
+
 // deleteURLHandler godoc
 //
 //	@Summary		Delete URL
 //	@Description	Deletes a URL. Also removes it from cache.
 //	@Tags			Admin
 //	@Produce		json
-//	@Param			code	path	string	true	"Short code of the URL"
+//	@Param			code	path	string	true	"Short code of the URL"	maxlength(16)
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401		{object}	HTTPError			"Unauthorized"
@@ -111,7 +115,7 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteURLHandler")
 	defer span.End()
 
-	params := new(DeleteShortUrlParams)
+	params := new(DeleteURLParams)
 	if err := c.Bind(params); err != nil {
 		span.SetStatus(codes.Error, "failed to bind request")
 		span.RecordError(err)

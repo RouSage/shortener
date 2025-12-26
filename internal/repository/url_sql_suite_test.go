@@ -68,6 +68,7 @@ func (suite *UrlTestSuite) TestCreateUrl() {
 		emptyUserID = ""
 	)
 
+	// TODO: add test with a long ID (16+ chars)
 	tests := []struct {
 		params CreateUrlParams
 	}{

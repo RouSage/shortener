@@ -145,7 +145,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 }
 
 type GetLongUrlParams struct {
-	Code string `param:"code" validate:"required"`
+	Code string `param:"code" validate:"required,max=16"`
 }
 type GetLongUrlResponse struct {
 	LongUrl string `json:"longUrl"`
@@ -157,7 +157,7 @@ type GetLongUrlResponse struct {
 //	@Description	Retrieves the original long URL for a given short code. Checks cache first, then database.
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			code	path		string				true	"Short code"
+//	@Param			code	path		string				true	"Short code"	maxlength(16)
 //	@Success		200		{object}	GetLongUrlResponse	"longUrl"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		404		{object}	HTTPError			"Short URL not found"
@@ -302,7 +302,7 @@ type DeleteShortUrlParams struct {
 //	@Description	Deletes a short URL owned by the authenticated user. Also removes it from cache.
 //	@Tags			URLs
 //	@Produce		json
-//	@Param			code	path	string	true	"Short code to delete"
+//	@Param			code	path	string	true	"Short code to delete"	maxlength(16)
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401		{object}	HTTPError			"Unauthorized"
