@@ -28,3 +28,8 @@ OFFSET
 DELETE FROM urls
 WHERE
   id = sqlc.arg ('id');
+
+-- name: DeleteAllUserURLs :execrows
+DELETE FROM urls
+WHERE
+  user_id = sqlc.arg ('user_id')::text;

@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+const deleteAllUserURLs = `-- name: DeleteAllUserURLs :execrows
+DELETE FROM urls
+WHERE
+  user_id = $1::text
+`
+
+// DeleteAllUserURLs
+//
+//	DELETE FROM urls
+//	WHERE
+//	  user_id = $1::text
+func (q *Queries) DeleteAllUserURLs(ctx context.Context, userID string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAllUserURLs, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteURL = `-- name: DeleteURL :execrows
 DELETE FROM urls
 WHERE
