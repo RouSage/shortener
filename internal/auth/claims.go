@@ -53,10 +53,10 @@ func GetUserID(c echo.Context) *string {
 
 	claims := getClaimsFromContext(c)
 	if claims == nil || claims.RegisteredClaims.Subject == "" {
-		span.SetAttributes(attribute.String("userID", ""))
+		span.SetAttributes(attribute.String("currUserID", ""))
 		return nil
 	}
-	span.SetAttributes(attribute.String("userID", claims.RegisteredClaims.Subject))
+	span.SetAttributes(attribute.String("currUserID", claims.RegisteredClaims.Subject))
 
 	return &claims.RegisteredClaims.Subject
 }

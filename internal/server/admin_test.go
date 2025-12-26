@@ -22,10 +22,9 @@ func TestGetURLsHandler(t *testing.T) {
 		adminID  = "admin-id"
 		userID_1 = "user-id"
 		userID_2 = "user-id-2"
+		trueVal  = true
+		falseVal = false
 	)
-
-	trueVal := true
-	falseVal := false
 
 	for i := range 5 {
 		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "", "")
@@ -44,6 +43,9 @@ func TestGetURLsHandler(t *testing.T) {
 		{name: "return all urls", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 15},
 		{name: "return all custom urls", filters: URLsFilters{IsCustom: &trueVal, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 5},
 		{name: "return all generic urls", filters: URLsFilters{IsCustom: &falseVal, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 10},
+		{name: "return all user urls", filters: URLsFilters{UserID: &userID_1, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 5},
+		{name: "return all user custom urls (no custom)", filters: URLsFilters{IsCustom: &trueVal, UserID: &userID_1, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 0},
+		{name: "return all user custom urls (has custom)", filters: URLsFilters{IsCustom: &trueVal, UserID: &userID_2, PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedUrls: 5},
 		{name: "return urls for page=1 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 5}}, expectedStatus: http.StatusOK, expectedUrls: 5},
 		{name: "return urls for page=3 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 3, PageSize: 5}}, expectedStatus: http.StatusOK, expectedUrls: 5},
 		{name: "return urls for page=4 and pageSize=5", filters: URLsFilters{PaginationFilters: PaginationFilters{Page: 4, PageSize: 5}}, expectedStatus: http.StatusOK},
@@ -58,6 +60,9 @@ func TestGetURLsHandler(t *testing.T) {
 			url := fmt.Sprintf("/v1/admin/urls?page=%d&pageSize=%d", tt.filters.Page, tt.filters.PageSize)
 			if tt.filters.IsCustom != nil {
 				url += fmt.Sprintf("&isCustom=%t", *tt.filters.IsCustom)
+			}
+			if tt.filters.UserID != nil {
+				url += fmt.Sprintf("&userId=%s", *tt.filters.UserID)
 			}
 
 			req := httptest.NewRequest(http.MethodGet, url, nil)

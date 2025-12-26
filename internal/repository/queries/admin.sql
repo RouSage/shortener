@@ -13,6 +13,10 @@ WHERE
     sqlc.narg ('is_custom')::boolean IS NULL
     OR is_custom = sqlc.narg ('is_custom')::boolean
   )
+  AND (
+    sqlc.narg ('user_id')::text IS NULL
+    OR user_id = sqlc.narg ('user_id')::text
+  )
 ORDER BY
   created_at DESC
 LIMIT

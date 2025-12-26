@@ -44,6 +44,14 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "maxLength": 50,
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Get URLs created by a specific user",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
                         "maximum": 10000,
                         "minimum": 1,
                         "type": "integer",

@@ -11,7 +11,8 @@ import (
 
 type URLsFilters struct {
 	PaginationFilters
-	IsCustom *bool `query:"isCustom"`
+	IsCustom *bool   `query:"isCustom" validate:"omitzero,boolean"`
+	UserID   *string `query:"userId" validate:"omitzero,min=1,max=50"`
 }
 type PaginatedURLs struct {
 	Items      []repository.Url `json:"items"`
@@ -25,8 +26,9 @@ type PaginatedURLs struct {
 //	@Tags			URLs,Admin
 //	@Produce		json
 //	@Param			isCustom	query		bool				false	"Get custom URLs only"
-//	@Param			page		query		int					true	"Page number"	minimum(1)	maximum(10000)	default(1)
-//	@Param			pageSize	query		int					true	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Param			userId		query		string				false	"Get URLs created by a specific user"	minlength(1)	maxlength(50)
+//	@Param			page		query		int					true	"Page number"							minimum(1)		maximum(10000)	default(1)
+//	@Param			pageSize	query		int					true	"Page size"								minimum(1)		maximum(100)	default(20)
 //	@Success		200			{object}	PaginatedURLs		"Paginated list of URLs"
 //	@Failure		400			{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401			{object}	HTTPError			"Unauthorized"
@@ -52,9 +54,12 @@ func (s *Server) getURLs(c echo.Context) error {
 	if params.IsCustom != nil {
 		span.SetAttributes(attribute.Bool("isCustom", *params.IsCustom))
 	}
+	if params.UserID != nil {
+		span.SetAttributes(attribute.String("userId", *params.UserID))
+	}
 
 	var rep = repository.New(s.db)
-	urls, err := rep.GetURLs(ctx, repository.GetURLsParams{IsCustom: params.IsCustom, Limit: params.limit(), Offset: params.offset()})
+	urls, err := rep.GetURLs(ctx, repository.GetURLsParams{IsCustom: params.IsCustom, UserID: params.UserID, Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get urls")
 		span.RecordError(err)

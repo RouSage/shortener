@@ -25,18 +25,23 @@ WHERE
     $1::boolean IS NULL
     OR is_custom = $1::boolean
   )
+  AND (
+    $2::text IS NULL
+    OR user_id = $2::text
+  )
 ORDER BY
   created_at DESC
 LIMIT
-  $3
+  $4
 OFFSET
-  $2
+  $3
 `
 
 type GetURLsParams struct {
-	IsCustom *bool `json:"isCustom"`
-	Offset   int32 `json:"offset"`
-	Limit    int32 `json:"limit"`
+	IsCustom *bool   `json:"isCustom"`
+	UserID   *string `json:"userId"`
+	Offset   int32   `json:"offset"`
+	Limit    int32   `json:"limit"`
 }
 
 type GetURLsRow struct {
@@ -64,14 +69,23 @@ type GetURLsRow struct {
 //	    $1::boolean IS NULL
 //	    OR is_custom = $1::boolean
 //	  )
+//	  AND (
+//	    $2::text IS NULL
+//	    OR user_id = $2::text
+//	  )
 //	ORDER BY
 //	  created_at DESC
 //	LIMIT
-//	  $3
+//	  $4
 //	OFFSET
-//	  $2
+//	  $3
 func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow, error) {
-	rows, err := q.db.Query(ctx, getURLs, arg.IsCustom, arg.Offset, arg.Limit)
+	rows, err := q.db.Query(ctx, getURLs,
+		arg.IsCustom,
+		arg.UserID,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
