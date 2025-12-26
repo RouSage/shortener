@@ -213,6 +213,43 @@ paths:
       summary: Delete URL
       tags:
       - Admin
+  /v1/admin/urls/user/{userId}:
+    delete:
+      description: Delete all URLs created by a user. Also removes them from cache.
+      parameters:
+      - description: ID of the user
+        in: path
+        maxLength: 50
+        minLength: 1
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content - URLs successfully deleted
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Delete URLs created by a user
+      tags:
+      - Admin
   /v1/health:
     get:
       description: Returns basic health status of the application

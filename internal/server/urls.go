@@ -347,7 +347,7 @@ func (s *Server) deletShortUrlHandler(c echo.Context) error {
 
 	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
-		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
+		s.logger.Warn().Err(err).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
 	}
 
 	return c.NoContent(http.StatusNoContent)
