@@ -92,7 +92,7 @@ func (s *Server) getURLs(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// deletURLHandler godoc
+// deleteURLHandler godoc
 //
 //	@Summary		Delete URL
 //	@Description	Deletes a URL. Also removes it from cache.
