@@ -173,14 +173,14 @@ func (suite *UrlTestSuite) TestDeleteShortUrl() {
 
 	userId := "user-id"
 
-	rowsAffected, err := suite.queries.DeleteUrl(suite.ctx, DeleteUrlParams{ID: "short-url", UserID: &userId})
+	rowsAffected, err := suite.queries.DeleteUserURL(suite.ctx, DeleteUserURLParams{ID: "short-url", UserID: &userId})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), rowsAffected)
 
 	_, err = suite.queries.CreateUrl(suite.ctx, CreateUrlParams{ID: "short-url", LongUrl: "https://long.url", UserID: &userId})
 	assert.NoError(t, err)
 
-	rowsAffected, err = suite.queries.DeleteUrl(suite.ctx, DeleteUrlParams{ID: "short-url", UserID: &userId})
+	rowsAffected, err = suite.queries.DeleteUserURL(suite.ctx, DeleteUserURLParams{ID: "short-url", UserID: &userId})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), rowsAffected)
 }

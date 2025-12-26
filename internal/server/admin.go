@@ -7,6 +7,7 @@ import (
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type URLsFilters struct {
@@ -89,4 +90,58 @@ func (s *Server) getURLs(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response)
+}
+
+// deleteURLHandler godoc
+//
+//	@Summary		Delete URL
+//	@Description	Deletes a URL. Also removes it from cache.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			code	path	string	true	"Short code of the URL"
+//	@Success		204		"No Content - URL successfully deleted"
+//	@Failure		400		{object}	HTTPValidationError	"Validation failed"
+//	@Failure		401		{object}	HTTPError			"Unauthorized"
+//	@Failure		403		{object}	HTTPError			"Forbidden"
+//	@Failure		404		{object}	HTTPError			"Short URL not found"
+//	@Failure		500		{object}	HTTPError			"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/urls/{code} [delete]
+func (s *Server) deleteURLHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteURLHandler")
+	defer span.End()
+
+	params := new(DeleteShortUrlParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("code", params.Code))
+
+	var rep = repository.New(s.db)
+
+	rowsAffected, err := rep.DeleteURL(ctx, params.Code)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to delete url")
+		span.RecordError(err)
+
+		s.logger.Error().Err(err).Str("code", params.Code).Msg("failed to delete short url")
+		return echo.ErrInternalServerError
+	}
+	if rowsAffected == 0 {
+		span.AddEvent("short url not found", trace.WithAttributes(attribute.String("code", params.Code)))
+		s.logger.Warn().Str("code", params.Code).Msg("short url not found")
+		return echo.ErrNotFound
+	}
+
+	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
+		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
+		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }

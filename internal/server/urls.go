@@ -331,7 +331,7 @@ func (s *Server) deletShortUrlHandler(c echo.Context) error {
 		rep    = repository.New(s.db)
 	)
 
-	rowsAffected, err := rep.DeleteUrl(ctx, repository.DeleteUrlParams{ID: params.Code, UserID: userID})
+	rowsAffected, err := rep.DeleteUserURL(ctx, repository.DeleteUserURLParams{ID: params.Code, UserID: userID})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to delete short url")
 		span.RecordError(err)
@@ -345,7 +345,7 @@ func (s *Server) deletShortUrlHandler(c echo.Context) error {
 		return echo.ErrNotFound
 	}
 
-	if removedKeys, err := s.cache.DeleteLongUrl(ctx, params.Code); err != nil {
+	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
 		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
 	}

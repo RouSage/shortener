@@ -14,17 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	adminID  = "admin-id"
+	userID_1 = "user-id"
+	userID_2 = "user-id-2"
+	trueVal  = true
+	falseVal = false
+)
+
 func TestGetURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
-
-	var (
-		adminID  = "admin-id"
-		userID_1 = "user-id"
-		userID_2 = "user-id-2"
-		trueVal  = true
-		falseVal = false
-	)
 
 	for i := range 5 {
 		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "", "")
@@ -94,6 +94,64 @@ func TestGetURLsHandler(t *testing.T) {
 				err = json.NewDecoder(res.Body).Decode(&actual)
 				require.NoError(t, err, "error decoding response body")
 				assert.Equal(t, tt.expectedUrls, len(actual.Items), "incorrect number of urls")
+			}
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func TestDeleteURLHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+
+	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
+
+	tests := []struct {
+		name              string
+		code              string
+		withoutPermission bool
+		expectedStatus    int
+	}{
+		{name: "no required permission", code: createdUrl.ID, withoutPermission: true, expectedStatus: http.StatusForbidden},
+		{name: "non-existent code", code: "non-existent", expectedStatus: http.StatusNotFound},
+		{name: "successful delete", code: createdUrl.ID, expectedStatus: http.StatusNoContent},
+		{name: "nothing to delete", code: createdUrl.ID, expectedStatus: http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/admin/urls/%s", tt.code), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+
+			c := e.NewContext(req, res)
+			c.SetPath("/v1/admin/urls/:code")
+			c.SetParamNames("code")
+			c.SetParamValues(tt.code)
+
+			claims := &validator.ValidatedClaims{
+				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+				CustomClaims:     &auth.CustomClaims{},
+			}
+			if !tt.withoutPermission {
+				claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.DeleteURLs)}
+			}
+			c.Set(string(auth.ClaimsContextKey), claims)
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.DeleteURLs)(s.deleteURLHandler))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
+				require.NoError(t, err)
+				assert.Equal(t, "", actualCache, "cache does not match")
 			}
 		})
 	}

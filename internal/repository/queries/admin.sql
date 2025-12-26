@@ -23,3 +23,8 @@ LIMIT
   sqlc.arg ('limit')
 OFFSET
   sqlc.arg ('offset');
+
+-- name: DeleteURL :execrows
+DELETE FROM urls
+WHERE
+  id = sqlc.arg ('id');

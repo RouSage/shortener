@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+const deleteURL = `-- name: DeleteURL :execrows
+DELETE FROM urls
+WHERE
+  id = $1
+`
+
+// DeleteURL
+//
+//	DELETE FROM urls
+//	WHERE
+//	  id = $1
+func (q *Queries) DeleteURL(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteURL, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getURLs = `-- name: GetURLs :many
 SELECT
   id,
