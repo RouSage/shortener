@@ -70,12 +70,12 @@ func (c *Cache) DeleteLongURLs(ctx context.Context, codes []string) (int64, erro
 	defer span.End()
 
 	keys := make([]string, len(codes))
-	for _, code := range codes {
-		keys = append(keys, c.getUrlKey(code))
+	for i, code := range codes {
+		keys[i] = c.getUrlKey(code)
 	}
 	span.SetAttributes(attribute.StringSlice("keys", keys))
 
-	if len(keys) == 0 {
+	if len(codes) == 0 {
 		return 0, nil
 	}
 
