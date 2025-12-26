@@ -98,7 +98,7 @@ func (s *Server) getURLs(c echo.Context) error {
 //	@Description	Deletes a URL. Also removes it from cache.
 //	@Tags			Admin
 //	@Produce		json
-//	@Param			code	path	string	true	"Short code of the URL"
+//	@Param			code	path	string	true	"Short code of the URL"	maxlength(16)
 //	@Success		204		"No Content - URL successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401		{object}	HTTPError			"Unauthorized"

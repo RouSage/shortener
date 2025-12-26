@@ -122,6 +122,7 @@ const docTemplate = `{
                 "summary": "Delete URL",
                 "parameters": [
                     {
+                        "maxLength": 16,
                         "type": "string",
                         "description": "Short code of the URL",
                         "name": "code",
@@ -342,6 +343,7 @@ const docTemplate = `{
                 "summary": "Get Long URL",
                 "parameters": [
                     {
+                        "maxLength": 16,
                         "type": "string",
                         "description": "Short code",
                         "name": "code",
@@ -392,6 +394,7 @@ const docTemplate = `{
                 "summary": "Delete Short URL",
                 "parameters": [
                     {
+                        "maxLength": 16,
                         "type": "string",
                         "description": "Short code to delete",
                         "name": "code",

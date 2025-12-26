@@ -179,6 +179,7 @@ paths:
       parameters:
       - description: Short code of the URL
         in: path
+        maxLength: 16
         name: code
         required: true
         type: string
@@ -326,6 +327,7 @@ paths:
       parameters:
       - description: Short code to delete
         in: path
+        maxLength: 16
         name: code
         required: true
         type: string
@@ -365,6 +367,7 @@ paths:
       parameters:
       - description: Short code
         in: path
+        maxLength: 16
         name: code
         required: true
         type: string
