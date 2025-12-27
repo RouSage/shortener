@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -106,6 +107,8 @@ func TestDeleteURLHandler(t *testing.T) {
 	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
 
 	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
+	_, err := s.cache.SetLongUrl(context.Background(), createdUrl.ID, createdUrl.LongUrl)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name              string
@@ -152,6 +155,83 @@ func TestDeleteURLHandler(t *testing.T) {
 				actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
 				require.NoError(t, err)
 				assert.Equal(t, "", actualCache, "cache does not match")
+			}
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func TestDeleteUserURLsHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+
+	invalidUserID := "the-user-id-that-is-too-long-for-the-endpoint-that-validation-should-prevent"
+	// Populate DB and cache with some URLs
+	codes_1 := make([]string, 5)
+	codes_2 := make([]string, 5)
+	for i := range 5 {
+		url_1 := createShortUrl(t, s, e, fmt.Sprintf("https://example-one-%d.com", i), userID_1, "")
+		url_2 := createShortUrl(t, s, e, fmt.Sprintf("https://example-two-%d.com", i), userID_2, fmt.Sprintf("custom-code-%d", i))
+		_, err := s.cache.SetLongUrl(context.Background(), url_1.ID, url_1.LongUrl)
+		require.NoError(t, err)
+		_, err = s.cache.SetLongUrl(context.Background(), url_2.ID, url_2.LongUrl)
+		require.NoError(t, err)
+
+		codes_1[i] = url_1.ID
+		codes_2[i] = url_2.ID
+	}
+
+	tests := []struct {
+		name              string
+		userId            string
+		codes             []string
+		withoutPermission bool
+		expectedStatus    int
+	}{
+		{name: "no required permission", userId: userID_1, codes: codes_1, withoutPermission: true, expectedStatus: http.StatusForbidden},
+		{name: "delete all user 1 urls", userId: userID_1, codes: codes_1, expectedStatus: http.StatusNoContent},
+		{name: "delete all user 2 urls", userId: userID_2, codes: codes_2, expectedStatus: http.StatusNoContent},
+		{name: "nothing to delete for user 1", userId: userID_1, codes: codes_1, expectedStatus: http.StatusNoContent},
+		{name: "nothing to delete for user 2", userId: userID_2, codes: codes_2, expectedStatus: http.StatusNoContent},
+		{name: "invalid user id", userId: invalidUserID, codes: []string{}, expectedStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/admin/urls/user/%s", tt.userId), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+
+			c := e.NewContext(req, res)
+			c.SetPath("/v1/admin/urls/user/:userId")
+			c.SetParamNames("userId")
+			c.SetParamValues(tt.userId)
+
+			claims := &validator.ValidatedClaims{
+				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+				CustomClaims:     &auth.CustomClaims{},
+			}
+			if !tt.withoutPermission {
+				claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.DeleteURLs)}
+			}
+			c.Set(string(auth.ClaimsContextKey), claims)
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.DeleteURLs)(s.deleteUserURLsHandler))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				for _, code := range tt.codes {
+					actualCache, err := s.cache.GetLongUrl(c.Request().Context(), code)
+					require.NoError(t, err)
+					assert.Equal(t, "", actualCache, "cache does not match")
+				}
 			}
 		})
 	}

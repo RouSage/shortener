@@ -160,7 +160,7 @@ type DeleteUserURLsParams struct {
 //	@Description	Delete all URLs created by a user. Also removes them from cache.
 //	@Tags			Admin
 //	@Produce		json
-//	@Param			userId	path	string	true	"ID of the user"	minLength(1)	maxlength(50)
+//	@Param			userId	path	string	true	"ID of the user"	minlength(1)	maxlength(50)
 //	@Success		204		"No Content - URLs successfully deleted"
 //	@Failure		400		{object}	HTTPValidationError	"Validation failed"
 //	@Failure		401		{object}	HTTPError			"Unauthorized"

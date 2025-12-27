@@ -35,7 +35,7 @@ type CreateShortUrlDTO struct {
 //	@Security		BearerAuth
 //	@Router			/v1/urls [post]
 func (s *Server) createShortURLHandler(c echo.Context) error {
-	ctx, span := tracer.Start(c.Request().Context(), "CreateShortURLHandler")
+	ctx, span := tracer.Start(c.Request().Context(), "urls.CreateShortURLHandler")
 	defer span.End()
 
 	dto := new(CreateShortUrlDTO)
@@ -165,7 +165,7 @@ type GetLongUrlResponse struct {
 //	@Security		BearerAuth
 //	@Router			/v1/urls/{code} [get]
 func (s *Server) getLongUrlHandler(c echo.Context) error {
-	ctx, span := tracer.Start(c.Request().Context(), "GetLongUrlHandler")
+	ctx, span := tracer.Start(c.Request().Context(), "urls.GetLongUrlHandler")
 	defer span.End()
 
 	params := new(GetLongUrlParams)
@@ -242,7 +242,7 @@ type PaginatedUserURLs struct {
 //	@Security		BearerAuth
 //	@Router			/v1/urls [get]
 func (s *Server) getUserUrls(c echo.Context) error {
-	ctx, span := tracer.Start(c.Request().Context(), "GetUserUrls")
+	ctx, span := tracer.Start(c.Request().Context(), "urls.GetUserUrls")
 	defer span.End()
 
 	params := new(PaginationFilters)
@@ -312,7 +312,7 @@ type DeleteShortUrlParams struct {
 //	@Security		BearerAuth
 //	@Router			/v1/urls/{code} [delete]
 func (s *Server) deletShortUrlHandler(c echo.Context) error {
-	ctx, span := tracer.Start(c.Request().Context(), "DeleteShortUrlHandler")
+	ctx, span := tracer.Start(c.Request().Context(), "urls.DeleteShortUrlHandler")
 	defer span.End()
 
 	params := new(DeleteShortUrlParams)
