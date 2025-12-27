@@ -358,6 +358,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 	userID := "user-id"
 	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")
+	_, err := s.cache.SetLongUrl(context.Background(), createdUrl.ID, createdUrl.LongUrl)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name              string
