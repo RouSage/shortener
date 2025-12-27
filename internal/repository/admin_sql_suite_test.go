@@ -113,7 +113,7 @@ func (suite *AdminTestSuite) TestGetURLs() {
 	}
 }
 
-func (suite *AdminTestSuite) TestDeleteShortUrl() {
+func (suite *AdminTestSuite) TestDeleteURL() {
 	t := suite.T()
 
 	tests := []struct {
@@ -132,6 +132,29 @@ func (suite *AdminTestSuite) TestDeleteShortUrl() {
 			rowsAffected, err := suite.queries.DeleteURL(suite.ctx, tt.id)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedRowsAffected, rowsAffected)
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestDeleteAllUserURLs() {
+	t := suite.T()
+
+	tests := []struct {
+		name                 string
+		userId               string
+		expectedRowsAffected int
+	}{
+		{name: "delete all user 1 urls", userId: userID_1, expectedRowsAffected: 5},
+		{name: "delete all user 2 urls", userId: userID_2, expectedRowsAffected: 2},
+		{name: "nothing to delete for user 1", userId: userID_1, expectedRowsAffected: 0},
+		{name: "nothing to delete for user 2", userId: userID_2, expectedRowsAffected: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deletedRows, err := suite.queries.DeleteAllUserURLs(suite.ctx, tt.userId)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedRowsAffected, len(deletedRows))
 		})
 	}
 }

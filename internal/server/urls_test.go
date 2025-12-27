@@ -219,10 +219,10 @@ func TestGetLongUrlHandler(t *testing.T) {
 					return
 				}
 
-				var actual map[string]string
+				var actual GetLongUrlResponse
 				err = json.NewDecoder(res.Body).Decode(&actual)
 				require.NoError(t, err, "error decoding response body")
-				assert.Equal(t, tt.expectedUrl, actual["longUrl"], "long URL does not match")
+				assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
 			}
 		})
 	}
@@ -358,6 +358,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 	userID := "user-id"
 	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")
+	_, err := s.cache.SetLongUrl(context.Background(), createdUrl.ID, createdUrl.LongUrl)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name              string

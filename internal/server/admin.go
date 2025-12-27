@@ -144,8 +144,65 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 
 	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
-		s.logger.Warn().Err(err).Str("code", params.Code).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
+		s.logger.Warn().Err(err).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+type DeleteUserURLsParams struct {
+	UserID string `param:"userId" validate:"required,min=1,max=50"`
+}
+type DeleteUserURLsResponse struct {
+	Deleted int `json:"deleted"`
+}
+
+// deleteUserURLs godoc
+//
+//	@Summary		Delete URLs created by a user
+//	@Description	Delete all URLs created by a user. Also removes them from cache.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
+//	@Failure		401		{object}	HTTPError				"Unauthorized"
+//	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/urls/user/{userId} [delete]
+func (s *Server) deleteUserURLsHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteUserURLsHandler")
+	defer span.End()
+
+	params := new(DeleteUserURLsParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("userId", params.UserID))
+
+	var rep = repository.New(s.db)
+
+	deletedIDs, err := rep.DeleteAllUserURLs(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to delete user urls")
+		span.RecordError(err)
+
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to delete user urls")
+		return echo.ErrInternalServerError
+	}
+
+	if removedKeys, err := s.cache.DeleteLongURLs(ctx, deletedIDs); err != nil {
+		span.AddEvent("failed to delete user urls from cache", trace.WithAttributes(attribute.String("userId", params.UserID), attribute.Int64("removedKeys", removedKeys), attribute.StringSlice("deletedIDs", deletedIDs)))
+		s.logger.Warn().Err(err).Str("userId", params.UserID).Int64("removedKeys", removedKeys).Strs("deletedIDs", deletedIDs).Msg("failed to delete user urls from cache")
+	}
+
+	return c.JSON(http.StatusOK, &DeleteUserURLsResponse{
+		Deleted: len(deletedIDs),
+	})
 }

@@ -110,6 +110,66 @@ const docTemplate = `{
                 ]
             }
         },
+        "/v1/admin/urls/user/{userId}": {
+            "delete": {
+                "description": "Delete all URLs created by a user. Also removes them from cache.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete URLs created by a user",
+                "parameters": [
+                    {
+                        "maxLength": 50,
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "ID of the user",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Number of URLs deleted",
+                        "schema": {
+                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPValidationError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1/admin/urls/{code}": {
             "delete": {
                 "description": "Deletes a URL. Also removes it from cache.",
@@ -485,6 +545,14 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "server.DeleteUserURLsResponse": {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "type": "integer"
                 }
             }
         },

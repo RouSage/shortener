@@ -2,11 +2,13 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"testing"
 
 	"github.com/rousage/shortener/internal/testhelpers"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -109,7 +111,7 @@ func (suite *UrlTestSuite) TestGetLongUrl() {
 	suite.Equal("https://another-long.url", longUrl, "long URL is not correct for existing cache entry")
 }
 
-func (suite *UrlTestSuite) TestDeleteLongUrl() {
+func (suite *UrlTestSuite) TestDeleteLongURL() {
 	code := "short-url"
 
 	removedKeys, err := suite.cache.DeleteLongURL(suite.ctx, code)
@@ -127,6 +129,40 @@ func (suite *UrlTestSuite) TestDeleteLongUrl() {
 	removedKeys, err = suite.cache.DeleteLongURL(suite.ctx, code)
 	suite.NoError(err)
 	suite.Empty(removedKeys, "expected to delete nothing the second time")
+}
+
+func (suite *UrlTestSuite) TestDeleteLongURLs() {
+	t := suite.T()
+
+	codes := make([]string, 5)
+	for i := range len(codes) {
+		code := fmt.Sprintf("short-url-%d", i)
+
+		_, err := suite.cache.SetLongUrl(suite.ctx, code, "https://long.url")
+		suite.Require().NoError(err, "error setting long URL")
+
+		codes[i] = code
+	}
+
+	tests := []struct {
+		name     string
+		codes    []string
+		expected int64
+	}{
+		{name: "delete one", codes: codes[:1], expected: 1},
+		{name: "delete two (one deleted)", codes: codes[:2], expected: 1},
+		{name: "delete rest", codes: codes[2:], expected: 3},
+		{name: "nothing to delete", codes: codes, expected: 0},
+		{name: "empty codes", codes: []string{}, expected: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			removedKeys, err := suite.cache.DeleteLongURLs(suite.ctx, tt.codes)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, removedKeys)
+		})
+	}
 }
 
 func TestUrlTestSuite(t *testing.T) {
