@@ -30,6 +30,11 @@ definitions:
     required:
     - url
     type: object
+  server.DeleteUserURLsResponse:
+    properties:
+      deleted:
+        type: integer
+    type: object
   server.GetLongUrlResponse:
     properties:
       longUrl:
@@ -227,8 +232,10 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content - URLs successfully deleted
+        "200":
+          description: Number of URLs deleted
+          schema:
+            $ref: '#/definitions/server.DeleteUserURLsResponse'
         "400":
           description: Validation failed
           schema:

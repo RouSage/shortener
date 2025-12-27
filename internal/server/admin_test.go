@@ -190,10 +190,10 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 		expectedStatus    int
 	}{
 		{name: "no required permission", userId: userID_1, codes: codes_1, withoutPermission: true, expectedStatus: http.StatusForbidden},
-		{name: "delete all user 1 urls", userId: userID_1, codes: codes_1, expectedStatus: http.StatusNoContent},
-		{name: "delete all user 2 urls", userId: userID_2, codes: codes_2, expectedStatus: http.StatusNoContent},
-		{name: "nothing to delete for user 1", userId: userID_1, codes: codes_1, expectedStatus: http.StatusNoContent},
-		{name: "nothing to delete for user 2", userId: userID_2, codes: codes_2, expectedStatus: http.StatusNoContent},
+		{name: "delete all user 1 urls", userId: userID_1, codes: codes_1, expectedStatus: http.StatusOK},
+		{name: "delete all user 2 urls", userId: userID_2, codes: codes_2, expectedStatus: http.StatusOK},
+		{name: "nothing to delete for user 1", userId: userID_1, codes: []string{}, expectedStatus: http.StatusOK},
+		{name: "nothing to delete for user 2", userId: userID_2, codes: []string{}, expectedStatus: http.StatusOK},
 		{name: "invalid user id", userId: invalidUserID, codes: []string{}, expectedStatus: http.StatusBadRequest},
 	}
 
@@ -226,6 +226,11 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual DeleteUserURLsResponse
+				err = json.NewDecoder(res.Body).Decode(&actual)
+				require.NoError(t, err, "error decoding response body")
+				assert.Equal(t, len(tt.codes), actual.Deleted, "incorrect number of deleted URLs")
 
 				for _, code := range tt.codes {
 					actualCache, err := s.cache.GetLongUrl(c.Request().Context(), code)

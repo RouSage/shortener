@@ -153,6 +153,9 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 type DeleteUserURLsParams struct {
 	UserID string `param:"userId" validate:"required,min=1,max=50"`
 }
+type DeleteUserURLsResponse struct {
+	Deleted int `json:"deleted"`
+}
 
 // deleteUserURLs godoc
 //
@@ -160,12 +163,12 @@ type DeleteUserURLsParams struct {
 //	@Description	Delete all URLs created by a user. Also removes them from cache.
 //	@Tags			Admin
 //	@Produce		json
-//	@Param			userId	path	string	true	"ID of the user"	minlength(1)	maxlength(50)
-//	@Success		204		"No Content - URLs successfully deleted"
-//	@Failure		400		{object}	HTTPValidationError	"Validation failed"
-//	@Failure		401		{object}	HTTPError			"Unauthorized"
-//	@Failure		403		{object}	HTTPError			"Forbidden"
-//	@Failure		500		{object}	HTTPError			"Internal server error"
+//	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
+//	@Failure		401		{object}	HTTPError				"Unauthorized"
+//	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/urls/user/{userId} [delete]
 func (s *Server) deleteUserURLsHandler(c echo.Context) error {
@@ -199,5 +202,7 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 		s.logger.Warn().Err(err).Str("userId", params.UserID).Int64("removedKeys", removedKeys).Strs("deletedIDs", deletedIDs).Msg("failed to delete user urls from cache")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, &DeleteUserURLsResponse{
+		Deleted: len(deletedIDs),
+	})
 }

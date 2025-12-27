@@ -132,8 +132,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content - URLs successfully deleted"
+                    "200": {
+                        "description": "Number of URLs deleted",
+                        "schema": {
+                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                        }
                     },
                     "400": {
                         "description": "Validation failed",
@@ -542,6 +545,14 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "server.DeleteUserURLsResponse": {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "type": "integer"
                 }
             }
         },
