@@ -219,10 +219,10 @@ func TestGetLongUrlHandler(t *testing.T) {
 					return
 				}
 
-				var actual map[string]string
+				var actual GetLongUrlResponse
 				err = json.NewDecoder(res.Body).Decode(&actual)
 				require.NoError(t, err, "error decoding response body")
-				assert.Equal(t, tt.expectedUrl, actual["longUrl"], "long URL does not match")
+				assert.Equal(t, tt.expectedUrl, actual.LongUrl, "long URL does not match")
 			}
 		})
 	}
