@@ -277,7 +277,7 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 
 func TestGetUserUrlsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	var (
 		userID_1 = "user-id"
@@ -354,7 +354,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 
 func TestDeleteShortUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	userID := "user-id"
 	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")

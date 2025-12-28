@@ -20,17 +20,17 @@ import (
 
 var tracer = otel.Tracer("github.com/rousage/shortener/internal/auth")
 
-type AuthMiddleware struct {
+type Middleware struct {
 	cfg    config.Auth
 	logger zerolog.Logger
 }
 
-func NewAuthMiddleware(cfg config.Auth, logger zerolog.Logger) *AuthMiddleware {
-	return &AuthMiddleware{cfg: cfg, logger: logger}
+func NewMiddleware(cfg config.Auth, logger zerolog.Logger) *Middleware {
+	return &Middleware{cfg: cfg, logger: logger}
 }
 
 // Authenticate is a middleware that will check the validity of the JWT if it is present
-func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	issuerURL, err := url.Parse(fmt.Sprintf("https://%s/", m.cfg.Auth0Domain))
 	if err != nil {
 		m.logger.Fatal().Err(err).Msg("Failed to parse the issuer url")
@@ -84,7 +84,7 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
+func (m *Middleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		_, span := tracer.Start(c.Request().Context(), "auth.RequireAuthentication")
 		defer span.End()
@@ -99,7 +99,7 @@ func (m *AuthMiddleware) RequireAuthentication(next echo.HandlerFunc) echo.Handl
 	}
 }
 
-func (m *AuthMiddleware) RequirePermission(permission permission) echo.MiddlewareFunc {
+func (m *Middleware) RequirePermission(permission permission) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			_, span := tracer.Start(c.Request().Context(), "auth.RequirePermission")
