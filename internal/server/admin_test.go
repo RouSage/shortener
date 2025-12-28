@@ -25,7 +25,7 @@ var (
 
 func TestGetURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	for i := range 5 {
 		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "", "")
@@ -104,7 +104,7 @@ func TestGetURLsHandler(t *testing.T) {
 
 func TestDeleteURLHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 	_, err := s.cache.SetLongUrl(context.Background(), createdUrl.ID, createdUrl.LongUrl)
@@ -164,7 +164,7 @@ func TestDeleteURLHandler(t *testing.T) {
 
 func TestDeleteUserURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	invalidUserID := "the-user-id-that-is-too-long-for-the-endpoint-that-validation-should-prevent"
 	// Populate DB and cache with some URLs
