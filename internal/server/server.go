@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,12 +15,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// AuthManager defines the interface for user management operations with Auth0
+type AuthManager interface {
+	BlockUser(ctx context.Context, userID string) error
+	UnblockUser(ctx context.Context, userID string) error
+}
+
 type Server struct {
 	cfg            *config.Config
 	logger         zerolog.Logger
 	db             *pgxpool.Pool
 	cache          *cache.Cache
-	authManagement *auth.Management
+	authManagement AuthManager
 }
 
 func New(cfg *config.Config) *http.Server {

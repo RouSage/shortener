@@ -448,7 +448,7 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 		cfg:            cfg,
 		db:             db,
 		cache:          cache.New(cacheClient),
-		authManagement: nil,
+		authManagement: &mockAuthManager{},
 	}
 
 	cleanup := func() {

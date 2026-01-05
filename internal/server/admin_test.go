@@ -8,10 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,6 +24,21 @@ var (
 	trueVal  = true
 	falseVal = false
 )
+
+// mockAuthManager is a test implementation of AuthManager interface using testify/mock
+type mockAuthManager struct {
+	mock.Mock
+}
+
+func (m *mockAuthManager) BlockUser(ctx context.Context, userID string) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *mockAuthManager) UnblockUser(ctx context.Context, userID string) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
 
 func TestGetURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
@@ -237,6 +254,268 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 					require.NoError(t, err)
 					assert.Equal(t, "", actualCache, "cache does not match")
 				}
+			}
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func TestBlockUserHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+
+	validUserID := "auth0|507f1f77bcf86cd799439011"
+	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+
+	tests := []struct {
+		name              string
+		userID            string
+		withoutPermission bool
+		mockSetup         func() *mockAuthManager
+		expectedStatus    int
+	}{
+		{
+			name:              "no required permission",
+			userID:            validUserID,
+			withoutPermission: true,
+			mockSetup:         func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus:    http.StatusForbidden,
+		},
+		{
+			name:   "successful block",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(nil)
+				return m
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:   "user not found in Auth0 (404)",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusNotFound,
+				})
+				return m
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:   "Auth0 returns 400 bad request",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusBadRequest,
+				})
+				return m
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "Auth0 returns 429 rate limit",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusTooManyRequests,
+				})
+				return m
+			},
+			expectedStatus: http.StatusTooManyRequests,
+		},
+		{
+			name:   "non-API error returns 500",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(assert.AnError)
+				return m
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "validation error - user ID too long",
+			userID:         invalidUserID,
+			mockSetup:      func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "validation error - empty user ID",
+			userID:         "",
+			mockSetup:      func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock auth manager
+			s.authManagement = tt.mockSetup()
+
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", tt.userID), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+
+			c := e.NewContext(req, res)
+			c.SetPath("/v1/admin/users/block/:userId")
+			c.SetParamNames("userId")
+			c.SetParamValues(tt.userID)
+
+			// Setup auth claims
+			claims := &validator.ValidatedClaims{
+				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+				CustomClaims:     &auth.CustomClaims{},
+			}
+			if !tt.withoutPermission {
+				claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.UserBlock)}
+			}
+			c.Set(string(auth.ClaimsContextKey), claims)
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserBlock)(s.blockUserHandler))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+			}
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func TestUnblockUserHandler(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+
+	validUserID := "auth0|507f1f77bcf86cd799439011"
+	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+
+	tests := []struct {
+		name              string
+		userID            string
+		withoutPermission bool
+		mockSetup         func() *mockAuthManager
+		expectedStatus    int
+	}{
+		{
+			name:              "no required permission",
+			userID:            validUserID,
+			withoutPermission: true,
+			mockSetup:         func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus:    http.StatusForbidden,
+		},
+		{
+			name:   "successful unblock",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(nil)
+				return m
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:   "user not found in Auth0 (404)",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusNotFound,
+				})
+				return m
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:   "Auth0 returns 400 bad request",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusBadRequest,
+				})
+				return m
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:   "Auth0 returns 429 rate limit",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+					StatusCode: http.StatusTooManyRequests,
+				})
+				return m
+			},
+			expectedStatus: http.StatusTooManyRequests,
+		},
+		{
+			name:   "non-API error returns 500",
+			userID: validUserID,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(assert.AnError)
+				return m
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "validation error - user ID too long",
+			userID:         invalidUserID,
+			mockSetup:      func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "validation error - empty user ID",
+			userID:         "",
+			mockSetup:      func() *mockAuthManager { return &mockAuthManager{} },
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock auth manager
+			s.authManagement = tt.mockSetup()
+
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/unblock/%s", tt.userID), nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+
+			c := e.NewContext(req, res)
+			c.SetPath("/v1/admin/users/unblock/:userId")
+			c.SetParamNames("userId")
+			c.SetParamValues(tt.userID)
+
+			// Setup auth claims
+			claims := &validator.ValidatedClaims{
+				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+				CustomClaims:     &auth.CustomClaims{},
+			}
+			if !tt.withoutPermission {
+				claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.UserUnblock)}
+			}
+			c.Set(string(auth.ClaimsContextKey), claims)
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserUnblock)(s.unblockUserHandler))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
 			}
 		})
 	}
