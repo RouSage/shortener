@@ -131,6 +131,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	adminUsers := admin.Group("/users")
 	adminUsers.POST("/block/:userId", s.blockUserHandler)
+	adminUsers.POST("/unblock/:userId", s.unblockUserHandler)
 
 	return e
 }
