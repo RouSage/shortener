@@ -1,8 +1,10 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
@@ -222,6 +224,7 @@ type BlockUserParams struct {
 //	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		401		{object}	HTTPError				"Unauthorized"
 //	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		404		{object}	HTTPError				"Not Found"
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/users/block/{userId} [post]
@@ -243,9 +246,18 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 	err := s.authManagement.BlockUser(ctx, params.UserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to block the user in auth")
-		span.RecordError(err)
 
+		var apiErr *core.APIError
+		if errors.As(err, &apiErr) {
+			span.RecordError(apiErr.Unwrap())
+
+			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth")
+			return echo.NewHTTPError(apiErr.StatusCode)
+		}
+
+		span.RecordError(err)
 		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth")
+
 		return echo.ErrInternalServerError
 	}
 
