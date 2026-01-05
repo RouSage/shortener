@@ -110,7 +110,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	authMw := auth.NewAuthMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
 	e.GET("/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 
@@ -123,10 +123,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication, authMw.RequirePermission(auth.GetOwnURLs))
 	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication, authMw.RequirePermission(auth.DeleteOwnURLs))
 
+	// Admin routes
 	admin := v1.Group("/admin", authMw.RequireAuthentication)
 	admin.GET("/urls", s.getURLs, authMw.RequirePermission(auth.GetURLs))
 	admin.DELETE("/urls/:code", s.deleteURLHandler, authMw.RequirePermission(auth.DeleteURLs))
 	admin.DELETE("/urls/user/:userId", s.deleteUserURLsHandler, authMw.RequirePermission(auth.DeleteURLs))
+
+	adminUsers := admin.Group("/users")
+	adminUsers.POST("/block/:userId", s.blockUserHandler, authMw.RequirePermission(auth.UserBlock))
+	adminUsers.POST("/unblock/:userId", s.unblockUserHandler, authMw.RequirePermission(auth.UserUnblock))
 
 	return e
 }

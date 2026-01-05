@@ -1,23 +1,32 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rs/zerolog"
 )
 
+// AuthManager defines the interface for user management operations with Auth0
+type AuthManager interface {
+	BlockUser(ctx context.Context, userID string) error
+	UnblockUser(ctx context.Context, userID string) error
+}
+
 type Server struct {
-	cfg    *config.Config
-	logger zerolog.Logger
-	db     *pgxpool.Pool
-	cache  *cache.Cache
+	cfg            *config.Config
+	logger         zerolog.Logger
+	db             *pgxpool.Pool
+	cache          *cache.Cache
+	authManagement AuthManager
 }
 
 func New(cfg *config.Config) *http.Server {
@@ -31,10 +40,11 @@ func New(cfg *config.Config) *http.Server {
 	cacheClient := cache.Connect(logger, cfg.Cache)
 
 	srv := &Server{
-		cfg:    cfg,
-		logger: logger,
-		db:     database.Connect(logger, cfg.Database),
-		cache:  cache.New(cacheClient),
+		cfg:            cfg,
+		logger:         logger,
+		db:             database.Connect(logger, cfg.Database),
+		cache:          cache.New(cacheClient),
+		authManagement: auth.NewManagement(logger, cfg.Auth),
 	}
 
 	// Declare Server config

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
@@ -205,4 +207,110 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, &DeleteUserURLsResponse{
 		Deleted: len(deletedIDs),
 	})
+}
+
+type BlockUserParams struct {
+	DeleteUserURLsParams
+}
+
+// blockUser godoc
+//
+//	@Summary		Block a user
+//	@Description	Block a user in the system, preventing them from accessing their account.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
+//	@Failure		401		{object}	HTTPError				"Unauthorized"
+//	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		404		{object}	HTTPError				"Not Found"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/users/block/{userId} [post]
+func (s *Server) blockUserHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.BlockUserHandler")
+	defer span.End()
+
+	params := new(BlockUserParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("userId", params.UserID))
+
+	err := s.authManagement.BlockUser(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in auth")
+
+		var apiErr *core.APIError
+		if errors.As(err, &apiErr) {
+			span.RecordError(apiErr.Unwrap())
+
+			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth")
+			return echo.NewHTTPError(apiErr.StatusCode)
+		}
+
+		span.RecordError(err)
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth")
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+// unblockUser godoc
+//
+//	@Summary		Unblock a user
+//	@Description	Unblock a user in the system, allowing them to access their account.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
+//	@Failure		401		{object}	HTTPError				"Unauthorized"
+//	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		404		{object}	HTTPError				"Not Found"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/users/unblock/{userId} [post]
+func (s *Server) unblockUserHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.UnblockUserHandler")
+	defer span.End()
+
+	params := new(BlockUserParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("userId", params.UserID))
+
+	err := s.authManagement.UnblockUser(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to unblock the user in auth")
+
+		var apiErr *core.APIError
+		if errors.As(err, &apiErr) {
+			span.RecordError(apiErr.Unwrap())
+
+			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to unblock the user in auth")
+			return echo.NewHTTPError(apiErr.StatusCode)
+		}
+
+		span.RecordError(err)
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to unblock the user in auth")
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.NoContent(http.StatusOK)
 }

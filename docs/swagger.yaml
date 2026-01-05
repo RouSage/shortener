@@ -257,6 +257,93 @@ paths:
       summary: Delete URLs created by a user
       tags:
       - Admin
+  /v1/admin/users/block/{userId}:
+    post:
+      description: Block a user in the system, preventing them from accessing their
+        account.
+      parameters:
+      - description: ID of the user
+        in: path
+        maxLength: 50
+        minLength: 1
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Number of URLs deleted
+          schema:
+            $ref: '#/definitions/server.DeleteUserURLsResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Block a user
+      tags:
+      - Admin
+  /v1/admin/users/unblock/{userId}:
+    post:
+      description: Unblock a user in the system, allowing them to access their account.
+      parameters:
+      - description: ID of the user
+        in: path
+        maxLength: 50
+        minLength: 1
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Number of URLs deleted
+          schema:
+            $ref: '#/definitions/server.DeleteUserURLsResponse'
+        "400":
+          description: Validation failed
+          schema:
+            $ref: '#/definitions/server.HTTPValidationError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/server.HTTPError'
+      security:
+      - BearerAuth: []
+      summary: Unblock a user
+      tags:
+      - Admin
   /v1/health:
     get:
       description: Returns basic health status of the application
