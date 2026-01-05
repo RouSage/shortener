@@ -130,8 +130,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	admin.DELETE("/urls/user/:userId", s.deleteUserURLsHandler, authMw.RequirePermission(auth.DeleteURLs))
 
 	adminUsers := admin.Group("/users")
-	adminUsers.POST("/block/:userId", s.blockUserHandler)
-	adminUsers.POST("/unblock/:userId", s.unblockUserHandler)
+	adminUsers.POST("/block/:userId", s.blockUserHandler, authMw.RequirePermission(auth.UserBlock))
+	adminUsers.POST("/unblock/:userId", s.unblockUserHandler, authMw.RequirePermission(auth.UserUnblock))
 
 	return e
 }

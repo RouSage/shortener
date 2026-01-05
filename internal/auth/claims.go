@@ -23,6 +23,8 @@ const (
 	GetOwnURLs    permission = "get:own-urls"
 	GetURL        permission = "get:url"
 	GetURLs       permission = "get:urls"
+	UserBlock     permission = "user:block"
+	UserUnblock   permission = "user:unblock"
 )
 
 // CustomClaims contains custom data we want from the token
