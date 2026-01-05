@@ -33,9 +33,8 @@ func (m *Management) BlockUser(ctx context.Context, userID string) error {
 
 	span.SetAttributes(attribute.String("userID", userID))
 
-	trueVal := true
 	_, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
-		Blocked: &trueVal,
+		Blocked: management.Bool(true),
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to block the user")
@@ -52,9 +51,8 @@ func (m *Management) UnblockUser(ctx context.Context, userID string) error {
 
 	span.SetAttributes(attribute.String("userID", userID))
 
-	falseVal := false
 	_, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
-		Blocked: &falseVal,
+		Blocked: management.Bool(false),
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to unblock the user")
