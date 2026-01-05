@@ -206,3 +206,48 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 		Deleted: len(deletedIDs),
 	})
 }
+
+type BlockUserParams struct {
+	DeleteUserURLsParams
+}
+
+// blockUser godoc
+//
+//	@Summary		Block user
+//	@Description	Block a user in the system, preventing them from accessing their account.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Failure		400		{object}	HTTPValidationError		"Validation failed"
+//	@Failure		401		{object}	HTTPError				"Unauthorized"
+//	@Failure		403		{object}	HTTPError				"Forbidden"
+//	@Failure		500		{object}	HTTPError				"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/users/block/{userId} [post]
+func (s *Server) blockUserHandler(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.BlockUserHandler")
+	defer span.End()
+
+	params := new(BlockUserParams)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+	span.SetAttributes(attribute.String("userId", params.UserID))
+
+	err := s.authManagement.BlockUser(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in auth")
+		span.RecordError(err)
+
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth")
+		return echo.ErrInternalServerError
+	}
+
+	return c.NoContent(http.StatusOK)
+}

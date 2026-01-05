@@ -444,10 +444,11 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	e.Validator = appvalidator.New()
 
 	s := &Server{
-		logger: logger,
-		cfg:    cfg,
-		db:     db,
-		cache:  cache.New(cacheClient),
+		logger:         logger,
+		cfg:            cfg,
+		db:             db,
+		cache:          cache.New(cacheClient),
+		authManagement: nil,
 	}
 
 	cleanup := func() {

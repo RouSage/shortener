@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/cache"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
@@ -14,10 +15,11 @@ import (
 )
 
 type Server struct {
-	cfg    *config.Config
-	logger zerolog.Logger
-	db     *pgxpool.Pool
-	cache  *cache.Cache
+	cfg            *config.Config
+	logger         zerolog.Logger
+	db             *pgxpool.Pool
+	cache          *cache.Cache
+	authManagement *auth.Management
 }
 
 func New(cfg *config.Config) *http.Server {
@@ -31,10 +33,11 @@ func New(cfg *config.Config) *http.Server {
 	cacheClient := cache.Connect(logger, cfg.Cache)
 
 	srv := &Server{
-		cfg:    cfg,
-		logger: logger,
-		db:     database.Connect(logger, cfg.Database),
-		cache:  cache.New(cacheClient),
+		cfg:            cfg,
+		logger:         logger,
+		db:             database.Connect(logger, cfg.Database),
+		cache:          cache.New(cacheClient),
+		authManagement: auth.NewManagement(logger, cfg.Auth),
 	}
 
 	// Declare Server config

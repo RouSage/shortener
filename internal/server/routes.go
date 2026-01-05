@@ -123,10 +123,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	v1.GET("/urls", s.getUserUrls, authMw.RequireAuthentication, authMw.RequirePermission(auth.GetOwnURLs))
 	v1.DELETE("/urls/:code", s.deletShortUrlHandler, authMw.RequireAuthentication, authMw.RequirePermission(auth.DeleteOwnURLs))
 
+	// Admin routes
 	admin := v1.Group("/admin", authMw.RequireAuthentication)
 	admin.GET("/urls", s.getURLs, authMw.RequirePermission(auth.GetURLs))
 	admin.DELETE("/urls/:code", s.deleteURLHandler, authMw.RequirePermission(auth.DeleteURLs))
 	admin.DELETE("/urls/user/:userId", s.deleteUserURLsHandler, authMw.RequirePermission(auth.DeleteURLs))
+
+	adminUsers := admin.Group("/users")
+	adminUsers.POST("/block/:userId", s.blockUserHandler)
 
 	return e
 }

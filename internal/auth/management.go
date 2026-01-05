@@ -16,7 +16,7 @@ type Management struct {
 	client *client.Management
 }
 
-func NewManagement(cfg config.Auth, logger zerolog.Logger) *Management {
+func NewManagement(logger zerolog.Logger, cfg config.Auth) *Management {
 	client, err := client.New(cfg.Auth0Domain, option.WithClientCredentials(context.Background(), cfg.Auth0ClientID, cfg.Auth0ClientSecret))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create Auth0 management client")
