@@ -10,6 +10,50 @@ import (
 	"time"
 )
 
+const blockUser = `-- name: BlockUser :exec
+INSERT INTO
+  user_blocks (user_id, user_email, blocked_by, reason)
+VALUES
+  ($1, $2, $3, $4)
+ON CONFLICT (user_id) DO UPDATE
+SET
+  user_email = EXCLUDED.user_email,
+  blocked_by = EXCLUDED.blocked_by,
+  reason = EXCLUDED.reason,
+  unblocked_by = NULL,
+  unblocked_at = NULL
+`
+
+type BlockUserParams struct {
+	UserID    string  `json:"userId"`
+	UserEmail *string `json:"userEmail"`
+	BlockedBy string  `json:"blockedBy"`
+	Reason    *string `json:"reason"`
+}
+
+// BlockUser
+//
+//	INSERT INTO
+//	  user_blocks (user_id, user_email, blocked_by, reason)
+//	VALUES
+//	  ($1, $2, $3, $4)
+//	ON CONFLICT (user_id) DO UPDATE
+//	SET
+//	  user_email = EXCLUDED.user_email,
+//	  blocked_by = EXCLUDED.blocked_by,
+//	  reason = EXCLUDED.reason,
+//	  unblocked_by = NULL,
+//	  unblocked_at = NULL
+func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
+	_, err := q.db.Exec(ctx, blockUser,
+		arg.UserID,
+		arg.UserEmail,
+		arg.BlockedBy,
+		arg.Reason,
+	)
+	return err
+}
+
 const deleteAllUserURLs = `-- name: DeleteAllUserURLs :many
 DELETE FROM urls
 WHERE
