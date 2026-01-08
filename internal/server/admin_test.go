@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/auth0/go-auth0/v2/management"
 	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
@@ -30,14 +31,14 @@ type mockAuthManager struct {
 	mock.Mock
 }
 
-func (m *mockAuthManager) BlockUser(ctx context.Context, userID string) error {
+func (m *mockAuthManager) BlockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
 	args := m.Called(ctx, userID)
-	return args.Error(0)
+	return args.Get(0).(*management.UpdateUserResponseContent), args.Error(1)
 }
 
-func (m *mockAuthManager) UnblockUser(ctx context.Context, userID string) error {
+func (m *mockAuthManager) UnblockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
 	args := m.Called(ctx, userID)
-	return args.Error(0)
+	return args.Get(0).(*management.UpdateUserResponseContent), args.Error(1)
 }
 
 func TestGetURLsHandler(t *testing.T) {
@@ -287,17 +288,17 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(nil)
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
 				return m
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:   "user not found in Auth0 (404)",
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusNotFound,
 				})
 				return m
@@ -309,7 +310,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusBadRequest,
 				})
 				return m
@@ -321,7 +322,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusTooManyRequests,
 				})
 				return m
@@ -333,7 +334,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(assert.AnError)
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, assert.AnError)
 				return m
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -418,7 +419,7 @@ func TestUnblockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("UnblockUser", mock.Anything, validUserID).Return(nil)
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
 				return m
 			},
 			expectedStatus: http.StatusOK,
@@ -428,7 +429,7 @@ func TestUnblockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusNotFound,
 				})
 				return m
@@ -440,7 +441,7 @@ func TestUnblockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusBadRequest,
 				})
 				return m
@@ -452,7 +453,7 @@ func TestUnblockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("UnblockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusTooManyRequests,
 				})
 				return m
@@ -464,7 +465,7 @@ func TestUnblockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("UnblockUser", mock.Anything, validUserID).Return(assert.AnError)
+				m.On("UnblockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, assert.AnError)
 				return m
 			},
 			expectedStatus: http.StatusInternalServerError,

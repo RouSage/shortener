@@ -27,37 +27,37 @@ func NewManagement(logger zerolog.Logger, cfg config.Auth) *Management {
 	}
 }
 
-func (m *Management) BlockUser(ctx context.Context, userID string) error {
+func (m *Management) BlockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
 	ctx, span := tracer.Start(ctx, "auth.BlockUser")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("userID", userID))
 
-	_, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
+	updated, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
 		Blocked: management.Bool(true),
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to block the user")
 		span.RecordError(err)
-		return err
+		return &management.UpdateUserResponseContent{}, err
 	}
 
-	return nil
+	return updated, nil
 }
 
-func (m *Management) UnblockUser(ctx context.Context, userID string) error {
+func (m *Management) UnblockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
 	ctx, span := tracer.Start(ctx, "auth.UnblockUser")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("userID", userID))
 
-	_, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
+	updated, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
 		Blocked: management.Bool(false),
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to unblock the user")
 		span.RecordError(err)
-		return err
+		return &management.UpdateUserResponseContent{}, err
 	}
 
 	// Also remove the user's brute-force protection block if any exists
@@ -65,8 +65,8 @@ func (m *Management) UnblockUser(ctx context.Context, userID string) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to remove the user's brute-force protection block")
 		span.RecordError(err)
-		return err
+		return &management.UpdateUserResponseContent{}, err
 	}
 
-	return nil
+	return updated, nil
 }

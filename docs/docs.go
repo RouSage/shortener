@@ -254,10 +254,10 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Number of URLs deleted",
+                    "201": {
+                        "description": "User Block entity",
                         "schema": {
-                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                            "$ref": "#/definitions/repository.UserBlock"
                         }
                     },
                     "400": {
@@ -657,6 +657,35 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "longUrl": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "repository.UserBlock": {
+            "type": "object",
+            "properties": {
+                "blockedAt": {
+                    "type": "string"
+                },
+                "blockedBy": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "unblockedAt": {
+                    "type": "string"
+                },
+                "unblockedBy": {
+                    "type": "string"
+                },
+                "userEmail": {
                     "type": "string"
                 },
                 "userId": {

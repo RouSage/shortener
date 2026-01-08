@@ -6,6 +6,7 @@ import (
 
 	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -220,7 +221,7 @@ type BlockUserParams struct {
 //	@Tags			Admin
 //	@Produce		json
 //	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
-//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Success		201		{object}	repository.UserBlock	"User Block entity"
 //	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		401		{object}	HTTPError				"Unauthorized"
 //	@Failure		403		{object}	HTTPError				"Forbidden"
@@ -243,25 +244,60 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
 
-	err := s.authManagement.BlockUser(ctx, params.UserID)
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		span.SetStatus(codes.Error, "failed to block the user in auth")
+		span.SetStatus(codes.Error, "failed to start transaction")
+		span.RecordError(err)
+		return echo.ErrInternalServerError
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	var (
+		userId = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
+	qtx := rep.WithTx(tx)
+
+	// Block the user in Auth0 first
+	updatedUser, err := s.authManagement.BlockUser(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in auth0")
 
 		var apiErr *core.APIError
 		if errors.As(err, &apiErr) {
 			span.RecordError(apiErr.Unwrap())
 
-			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth")
+			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth0")
 			return echo.NewHTTPError(apiErr.StatusCode)
 		}
 
 		span.RecordError(err)
-		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth")
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth0")
 
 		return echo.ErrInternalServerError
 	}
 
-	return c.NoContent(http.StatusOK)
+	// Block the user in the DB
+	userBlock, err := qtx.BlockUser(ctx, repository.BlockUserParams{UserID: params.UserID, UserEmail: updatedUser.Email, BlockedBy: *userId})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in db")
+		span.RecordError(err)
+
+		_, _ = s.authManagement.UnblockUser(ctx, params.UserID)
+
+		return echo.ErrInternalServerError
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		span.SetStatus(codes.Error, "failed to commit transaction")
+		span.RecordError(err)
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.JSON(http.StatusCreated, userBlock)
 }
 
 // unblockUser godoc
@@ -294,7 +330,7 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
 
-	err := s.authManagement.UnblockUser(ctx, params.UserID)
+	_, err := s.authManagement.UnblockUser(ctx, params.UserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to unblock the user in auth")
 
