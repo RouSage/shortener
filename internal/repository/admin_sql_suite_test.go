@@ -176,6 +176,7 @@ func (suite *AdminTestSuite) TestBlockUser() {
 		{name: "blocks a user", params: BlockUserParams{UserID: userID_1, BlockedBy: adminID, Reason: &reason}},
 		{name: "blocks another user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
 		{name: "blocks already blocked user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
+		{name: "email is overriden", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID}},
 	}
 
 	for _, tt := range tests {

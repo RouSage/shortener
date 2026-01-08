@@ -13,6 +13,7 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/auth"
+	"github.com/rousage/shortener/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -266,12 +267,16 @@ func TestBlockUserHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
-	validUserID := "auth0|507f1f77bcf86cd799439011"
-	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+	var (
+		validUserID   = "auth0|507f1f77bcf86cd799439011"
+		userEmail     = "user@example.com"
+		invalidUserID = "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+	)
 
 	tests := []struct {
 		name              string
 		userID            string
+		userEmail         string
 		withoutPermission bool
 		mockSetup         func() *mockAuthManager
 		expectedStatus    int
@@ -289,6 +294,17 @@ func TestBlockUserHandler(t *testing.T) {
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
 				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
+				return m
+			},
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:      "successful block (with email)",
+			userID:    validUserID,
+			userEmail: userEmail,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{Email: &userEmail}, nil)
 				return m
 			},
 			expectedStatus: http.StatusCreated,
@@ -386,6 +402,20 @@ func TestBlockUserHandler(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual repository.UserBlock
+				err = json.NewDecoder(res.Body).Decode(&actual)
+
+				if tt.expectedStatus != http.StatusBadRequest {
+					require.NoError(t, err, "error decoding response body")
+					assert.Equal(t, tt.userID, actual.UserID, "user id should be the same")
+					assert.Equal(t, adminID, actual.BlockedBy, "blocked by should be the admin")
+					assert.Nil(t, actual.UnblockedBy, "unblocked by should be nil")
+					assert.Nil(t, actual.UnblockedAt, "unblocked at should be nil")
+					if actual.UserEmail != nil {
+						assert.Equal(t, &tt.userEmail, actual.UserEmail, "user email should be the same")
+					}
+				}
 			}
 		})
 	}
