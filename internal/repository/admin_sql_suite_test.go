@@ -16,6 +16,7 @@ import (
 var (
 	userID_1 = "user-id"
 	userID_2 = "user-id-2"
+	adminID  = "adminID"
 )
 
 type AdminTestSuite struct {
@@ -155,6 +156,55 @@ func (suite *AdminTestSuite) TestDeleteAllUserURLs() {
 			deletedRows, err := suite.queries.DeleteAllUserURLs(suite.ctx, tt.userId)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedRowsAffected, len(deletedRows))
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestBlockUser() {
+	t := suite.T()
+
+	var (
+		reason = "Test reason"
+		email  = "test@example.com"
+	)
+
+	tests := []struct {
+		name   string
+		params BlockUserParams
+	}{
+		{name: "blocks a user", params: BlockUserParams{UserID: userID_1, BlockedBy: adminID, Reason: &reason}},
+		{name: "blocks another user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
+		{name: "blocks already blocked user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := suite.queries.BlockUser(suite.ctx, tt.params)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestUnblockUser() {
+	t := suite.T()
+
+	// Block one user first
+	err := suite.queries.BlockUser(suite.ctx, BlockUserParams{UserID: userID_1, BlockedBy: adminID})
+	suite.Require().NoError(err)
+
+	tests := []struct {
+		name   string
+		params UnblockUserParams
+	}{
+		{name: "unblocks a user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
+		{name: "unblocks already unblocked user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
+		{name: "unblocks another user that is not blocked", params: UnblockUserParams{UserID: userID_2, UnblockedBy: adminID}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := suite.queries.UnblockUser(suite.ctx, tt.params)
+			assert.NoError(t, err)
 		})
 	}
 }
