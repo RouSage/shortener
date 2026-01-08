@@ -45,19 +45,19 @@ func (m *Management) BlockUser(ctx context.Context, userID string) (*management.
 	return updated, nil
 }
 
-func (m *Management) UnblockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
+func (m *Management) UnblockUser(ctx context.Context, userID string) error {
 	ctx, span := tracer.Start(ctx, "auth.UnblockUser")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("userID", userID))
 
-	updated, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
+	_, err := m.client.Users.Update(ctx, userID, &management.UpdateUserRequestContent{
 		Blocked: management.Bool(false),
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to unblock the user")
 		span.RecordError(err)
-		return &management.UpdateUserResponseContent{}, err
+		return err
 	}
 
 	// Also remove the user's brute-force protection block if any exists
@@ -65,8 +65,8 @@ func (m *Management) UnblockUser(ctx context.Context, userID string) (*managemen
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to remove the user's brute-force protection block")
 		span.RecordError(err)
-		return &management.UpdateUserResponseContent{}, err
+		return err
 	}
 
-	return updated, nil
+	return nil
 }

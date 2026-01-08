@@ -19,7 +19,7 @@ import (
 // AuthManager defines the interface for user management operations with Auth0
 type AuthManager interface {
 	BlockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error)
-	UnblockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error)
+	UnblockUser(ctx context.Context, userID string) error
 }
 
 type Server struct {

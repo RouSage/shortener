@@ -321,9 +321,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Number of URLs deleted",
+                        "description": "Updated User Block entity",
                         "schema": {
-                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                            "$ref": "#/definitions/repository.UserBlock"
                         }
                     },
                     "400": {
