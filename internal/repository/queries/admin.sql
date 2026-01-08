@@ -36,7 +36,7 @@ WHERE
 RETURNING
   id;
 
--- name: BlockUser :exec
+-- name: BlockUser :one
 INSERT INTO
   user_blocks (user_id, user_email, blocked_by, reason)
 VALUES
@@ -47,12 +47,16 @@ SET
   blocked_by = EXCLUDED.blocked_by,
   reason = EXCLUDED.reason,
   unblocked_by = NULL,
-  unblocked_at = NULL;
+  unblocked_at = NULL
+RETURNING
+  *;
 
--- name: UnblockUser :exec
+-- name: UnblockUser :one
 UPDATE user_blocks
 SET
   unblocked_by = sqlc.arg ('unblocked_by')::text,
   unblocked_at = NOW()
 WHERE
-  user_id = sqlc.arg ('user_id');
+  user_id = sqlc.arg ('user_id')
+RETURNING
+  *;

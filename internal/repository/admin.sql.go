@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const blockUser = `-- name: BlockUser :exec
+const blockUser = `-- name: BlockUser :one
 INSERT INTO
   user_blocks (user_id, user_email, blocked_by, reason)
 VALUES
@@ -22,6 +22,8 @@ SET
   reason = EXCLUDED.reason,
   unblocked_by = NULL,
   unblocked_at = NULL
+RETURNING
+  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
 `
 
 type BlockUserParams struct {
@@ -44,14 +46,27 @@ type BlockUserParams struct {
 //	  reason = EXCLUDED.reason,
 //	  unblocked_by = NULL,
 //	  unblocked_at = NULL
-func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
-	_, err := q.db.Exec(ctx, blockUser,
+//	RETURNING
+//	  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) (UserBlock, error) {
+	row := q.db.QueryRow(ctx, blockUser,
 		arg.UserID,
 		arg.UserEmail,
 		arg.BlockedBy,
 		arg.Reason,
 	)
-	return err
+	var i UserBlock
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserEmail,
+		&i.BlockedBy,
+		&i.BlockedAt,
+		&i.UnblockedBy,
+		&i.UnblockedAt,
+		&i.Reason,
+	)
+	return i, err
 }
 
 const deleteAllUserURLs = `-- name: DeleteAllUserURLs :many
@@ -209,13 +224,15 @@ func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow,
 	return items, nil
 }
 
-const unblockUser = `-- name: UnblockUser :exec
+const unblockUser = `-- name: UnblockUser :one
 UPDATE user_blocks
 SET
   unblocked_by = $1::text,
   unblocked_at = NOW()
 WHERE
   user_id = $2
+RETURNING
+  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
 `
 
 type UnblockUserParams struct {
@@ -231,7 +248,20 @@ type UnblockUserParams struct {
 //	  unblocked_at = NOW()
 //	WHERE
 //	  user_id = $2
-func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
-	_, err := q.db.Exec(ctx, unblockUser, arg.UnblockedBy, arg.UserID)
-	return err
+//	RETURNING
+//	  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) (UserBlock, error) {
+	row := q.db.QueryRow(ctx, unblockUser, arg.UnblockedBy, arg.UserID)
+	var i UserBlock
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserEmail,
+		&i.BlockedBy,
+		&i.BlockedAt,
+		&i.UnblockedBy,
+		&i.UnblockedAt,
+		&i.Reason,
+	)
+	return i, err
 }

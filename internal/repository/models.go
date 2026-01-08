@@ -6,8 +6,6 @@ package repository
 
 import (
 	"time"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Url struct {
@@ -19,12 +17,12 @@ type Url struct {
 }
 
 type UserBlock struct {
-	ID          int32              `json:"id"`
-	UserID      string             `json:"userId"`
-	UserEmail   *string            `json:"userEmail"`
-	BlockedBy   string             `json:"blockedBy"`
-	BlockedAt   time.Time          `json:"blockedAt"`
-	UnblockedBy *string            `json:"unblockedBy"`
-	UnblockedAt pgtype.Timestamptz `json:"unblockedAt"`
-	Reason      *string            `json:"reason"`
+	ID          int32      `json:"id"`
+	UserID      string     `json:"userId"`
+	UserEmail   *string    `json:"userEmail"`
+	BlockedBy   string     `json:"blockedBy"`
+	BlockedAt   time.Time  `json:"blockedAt"`
+	UnblockedBy *string    `json:"unblockedBy"`
+	UnblockedAt *time.Time `json:"unblockedAt"`
+	Reason      *string    `json:"reason"`
 }

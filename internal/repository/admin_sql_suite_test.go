@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/testhelpers"
@@ -179,8 +180,14 @@ func (suite *AdminTestSuite) TestBlockUser() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := suite.queries.BlockUser(suite.ctx, tt.params)
+			userBlock, err := suite.queries.BlockUser(suite.ctx, tt.params)
 			assert.NoError(t, err)
+			assert.Equal(t, tt.params.UserID, userBlock.UserID, "user id should be the same")
+			assert.Equal(t, tt.params.BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
+			assert.Equal(t, tt.params.Reason, userBlock.Reason, "reason should be the same")
+			assert.Equal(t, tt.params.UserEmail, userBlock.UserEmail, "user email should be the same")
+			assert.Nil(t, userBlock.UnblockedBy, "unblocked by should be nil")
+			assert.Nil(t, userBlock.UnblockedAt, "unblocked at should be nil")
 		})
 	}
 }
@@ -189,7 +196,8 @@ func (suite *AdminTestSuite) TestUnblockUser() {
 	t := suite.T()
 
 	// Block one user first
-	err := suite.queries.BlockUser(suite.ctx, BlockUserParams{UserID: userID_1, BlockedBy: adminID})
+	blockParams := BlockUserParams{UserID: userID_1, BlockedBy: adminID}
+	_, err := suite.queries.BlockUser(suite.ctx, blockParams)
 	suite.Require().NoError(err)
 
 	tests := []struct {
@@ -198,13 +206,24 @@ func (suite *AdminTestSuite) TestUnblockUser() {
 	}{
 		{name: "unblocks a user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
 		{name: "unblocks already unblocked user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
-		{name: "unblocks another user that is not blocked", params: UnblockUserParams{UserID: userID_2, UnblockedBy: adminID}},
+		{name: "unblocks another user that is not blocked and errors", params: UnblockUserParams{UserID: userID_2, UnblockedBy: adminID}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := suite.queries.UnblockUser(suite.ctx, tt.params)
-			assert.NoError(t, err)
+			userBlock, err := suite.queries.UnblockUser(suite.ctx, tt.params)
+			if err != nil {
+				assert.ErrorIs(t, err, pgx.ErrNoRows)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.params.UserID, userBlock.UserID, "user id should be the same")
+				assert.Equal(t, &tt.params.UnblockedBy, userBlock.UnblockedBy, "unblocked by should be the same")
+
+				assert.Equal(t, blockParams.BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
+				assert.Equal(t, blockParams.Reason, userBlock.Reason, "reason should be the same")
+				assert.Equal(t, blockParams.UserEmail, userBlock.UserEmail, "user email should be the same")
+
+			}
 		})
 	}
 }
