@@ -48,3 +48,11 @@ SET
   reason = EXCLUDED.reason,
   unblocked_by = NULL,
   unblocked_at = NULL;
+
+-- name: UnblockUser :exec
+UPDATE user_blocks
+SET
+  unblocked_by = sqlc.arg ('unblocked_by')::text,
+  unblocked_at = NOW()
+WHERE
+  user_id = sqlc.arg ('user_id');

@@ -208,3 +208,30 @@ func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow,
 	}
 	return items, nil
 }
+
+const unblockUser = `-- name: UnblockUser :exec
+UPDATE user_blocks
+SET
+  unblocked_by = $1::text,
+  unblocked_at = NOW()
+WHERE
+  user_id = $2
+`
+
+type UnblockUserParams struct {
+	UnblockedBy string `json:"unblockedBy"`
+	UserID      string `json:"userId"`
+}
+
+// UnblockUser
+//
+//	UPDATE user_blocks
+//	SET
+//	  unblocked_by = $1::text,
+//	  unblocked_at = NOW()
+//	WHERE
+//	  user_id = $2
+func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
+	_, err := q.db.Exec(ctx, unblockUser, arg.UnblockedBy, arg.UserID)
+	return err
+}
