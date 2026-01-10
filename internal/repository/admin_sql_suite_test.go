@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/testhelpers"
@@ -16,6 +17,7 @@ import (
 var (
 	userID_1 = "user-id"
 	userID_2 = "user-id-2"
+	adminID  = "adminID"
 )
 
 type AdminTestSuite struct {
@@ -155,6 +157,74 @@ func (suite *AdminTestSuite) TestDeleteAllUserURLs() {
 			deletedRows, err := suite.queries.DeleteAllUserURLs(suite.ctx, tt.userId)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedRowsAffected, len(deletedRows))
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestBlockUser() {
+	t := suite.T()
+
+	var (
+		reason = "Test reason"
+		email  = "test@example.com"
+	)
+
+	tests := []struct {
+		name   string
+		params BlockUserParams
+	}{
+		{name: "blocks a user", params: BlockUserParams{UserID: userID_1, BlockedBy: adminID, Reason: &reason}},
+		{name: "blocks another user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
+		{name: "blocks already blocked user", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID, UserEmail: &email}},
+		{name: "email is overriden", params: BlockUserParams{UserID: userID_2, BlockedBy: adminID}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userBlock, err := suite.queries.BlockUser(suite.ctx, tt.params)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.params.UserID, userBlock.UserID, "user id should be the same")
+			assert.Equal(t, tt.params.BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
+			assert.Equal(t, tt.params.Reason, userBlock.Reason, "reason should be the same")
+			assert.Equal(t, tt.params.UserEmail, userBlock.UserEmail, "user email should be the same")
+			assert.Nil(t, userBlock.UnblockedBy, "unblocked by should be nil")
+			assert.Nil(t, userBlock.UnblockedAt, "unblocked at should be nil")
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestUnblockUser() {
+	t := suite.T()
+
+	// Block one user first
+	blockParams := BlockUserParams{UserID: userID_1, BlockedBy: adminID}
+	_, err := suite.queries.BlockUser(suite.ctx, blockParams)
+	suite.Require().NoError(err)
+
+	tests := []struct {
+		name   string
+		params UnblockUserParams
+	}{
+		{name: "unblocks a user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
+		{name: "unblocks already unblocked user", params: UnblockUserParams{UserID: userID_1, UnblockedBy: adminID}},
+		{name: "unblocks another user that is not blocked and errors", params: UnblockUserParams{UserID: userID_2, UnblockedBy: adminID}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userBlock, err := suite.queries.UnblockUser(suite.ctx, tt.params)
+			if err != nil {
+				assert.ErrorIs(t, err, pgx.ErrNoRows)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.params.UserID, userBlock.UserID, "user id should be the same")
+				assert.Equal(t, &tt.params.UnblockedBy, userBlock.UnblockedBy, "unblocked by should be the same")
+
+				assert.Equal(t, blockParams.BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
+				assert.Equal(t, blockParams.Reason, userBlock.Reason, "reason should be the same")
+				assert.Equal(t, blockParams.UserEmail, userBlock.UserEmail, "user email should be the same")
+
+			}
 		})
 	}
 }

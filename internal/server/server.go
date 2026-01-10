@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/auth0/go-auth0/v2/management"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/cache"
@@ -17,7 +18,7 @@ import (
 
 // AuthManager defines the interface for user management operations with Auth0
 type AuthManager interface {
-	BlockUser(ctx context.Context, userID string) error
+	BlockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error)
 	UnblockUser(ctx context.Context, userID string) error
 }
 

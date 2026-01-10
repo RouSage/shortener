@@ -19,6 +19,32 @@ definitions:
       userId:
         type: string
     type: object
+  repository.UserBlock:
+    properties:
+      blockedAt:
+        type: string
+      blockedBy:
+        type: string
+      id:
+        type: integer
+      reason:
+        type: string
+      unblockedAt:
+        type: string
+      unblockedBy:
+        type: string
+      userEmail:
+        type: string
+      userId:
+        type: string
+    type: object
+  server.BlockUserDTO:
+    properties:
+      reason:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
   server.CreateShortUrlDTO:
     properties:
       shortCode:
@@ -259,6 +285,8 @@ paths:
       - Admin
   /v1/admin/users/block/{userId}:
     post:
+      consumes:
+      - application/json
       description: Block a user in the system, preventing them from accessing their
         account.
       parameters:
@@ -269,13 +297,19 @@ paths:
         name: userId
         required: true
         type: string
+      - description: Block user request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.BlockUserDTO'
       produces:
       - application/json
       responses:
-        "200":
-          description: Number of URLs deleted
+        "201":
+          description: User Block entity
           schema:
-            $ref: '#/definitions/server.DeleteUserURLsResponse'
+            $ref: '#/definitions/repository.UserBlock'
         "400":
           description: Validation failed
           schema:
@@ -316,9 +350,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Number of URLs deleted
+          description: Updated User Block entity
           schema:
-            $ref: '#/definitions/server.DeleteUserURLsResponse'
+            $ref: '#/definitions/repository.UserBlock'
         "400":
           description: Validation failed
           schema:

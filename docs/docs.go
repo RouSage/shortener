@@ -235,6 +235,9 @@ const docTemplate = `{
         "/v1/admin/users/block/{userId}": {
             "post": {
                 "description": "Block a user in the system, preventing them from accessing their account.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -251,13 +254,22 @@ const docTemplate = `{
                         "name": "userId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Block user request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.BlockUserDTO"
+                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Number of URLs deleted",
+                    "201": {
+                        "description": "User Block entity",
                         "schema": {
-                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                            "$ref": "#/definitions/repository.UserBlock"
                         }
                     },
                     "400": {
@@ -321,9 +333,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Number of URLs deleted",
+                        "description": "Updated User Block entity",
                         "schema": {
-                            "$ref": "#/definitions/server.DeleteUserURLsResponse"
+                            "$ref": "#/definitions/repository.UserBlock"
                         }
                     },
                     "400": {
@@ -661,6 +673,45 @@ const docTemplate = `{
                 },
                 "userId": {
                     "type": "string"
+                }
+            }
+        },
+        "repository.UserBlock": {
+            "type": "object",
+            "properties": {
+                "blockedAt": {
+                    "type": "string"
+                },
+                "blockedBy": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "unblockedAt": {
+                    "type": "string"
+                },
+                "unblockedBy": {
+                    "type": "string"
+                },
+                "userEmail": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.BlockUserDTO": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
                 }
             }
         },

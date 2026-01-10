@@ -35,3 +35,28 @@ WHERE
   user_id = sqlc.arg ('user_id')::text
 RETURNING
   id;
+
+-- name: BlockUser :one
+INSERT INTO
+  user_blocks (user_id, user_email, blocked_by, reason)
+VALUES
+  ($1, $2, $3, $4)
+ON CONFLICT (user_id) DO UPDATE
+SET
+  user_email = EXCLUDED.user_email,
+  blocked_by = EXCLUDED.blocked_by,
+  reason = EXCLUDED.reason,
+  unblocked_by = NULL,
+  unblocked_at = NULL
+RETURNING
+  *;
+
+-- name: UnblockUser :one
+UPDATE user_blocks
+SET
+  unblocked_by = sqlc.arg ('unblocked_by')::text,
+  unblocked_at = NOW()
+WHERE
+  user_id = sqlc.arg ('user_id')
+RETURNING
+  *;

@@ -10,6 +10,65 @@ import (
 	"time"
 )
 
+const blockUser = `-- name: BlockUser :one
+INSERT INTO
+  user_blocks (user_id, user_email, blocked_by, reason)
+VALUES
+  ($1, $2, $3, $4)
+ON CONFLICT (user_id) DO UPDATE
+SET
+  user_email = EXCLUDED.user_email,
+  blocked_by = EXCLUDED.blocked_by,
+  reason = EXCLUDED.reason,
+  unblocked_by = NULL,
+  unblocked_at = NULL
+RETURNING
+  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+`
+
+type BlockUserParams struct {
+	UserID    string  `json:"userId"`
+	UserEmail *string `json:"userEmail"`
+	BlockedBy string  `json:"blockedBy"`
+	Reason    *string `json:"reason"`
+}
+
+// BlockUser
+//
+//	INSERT INTO
+//	  user_blocks (user_id, user_email, blocked_by, reason)
+//	VALUES
+//	  ($1, $2, $3, $4)
+//	ON CONFLICT (user_id) DO UPDATE
+//	SET
+//	  user_email = EXCLUDED.user_email,
+//	  blocked_by = EXCLUDED.blocked_by,
+//	  reason = EXCLUDED.reason,
+//	  unblocked_by = NULL,
+//	  unblocked_at = NULL
+//	RETURNING
+//	  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) (UserBlock, error) {
+	row := q.db.QueryRow(ctx, blockUser,
+		arg.UserID,
+		arg.UserEmail,
+		arg.BlockedBy,
+		arg.Reason,
+	)
+	var i UserBlock
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserEmail,
+		&i.BlockedBy,
+		&i.BlockedAt,
+		&i.UnblockedBy,
+		&i.UnblockedAt,
+		&i.Reason,
+	)
+	return i, err
+}
+
 const deleteAllUserURLs = `-- name: DeleteAllUserURLs :many
 DELETE FROM urls
 WHERE
@@ -163,4 +222,46 @@ func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow,
 		return nil, err
 	}
 	return items, nil
+}
+
+const unblockUser = `-- name: UnblockUser :one
+UPDATE user_blocks
+SET
+  unblocked_by = $1::text,
+  unblocked_at = NOW()
+WHERE
+  user_id = $2
+RETURNING
+  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+`
+
+type UnblockUserParams struct {
+	UnblockedBy string `json:"unblockedBy"`
+	UserID      string `json:"userId"`
+}
+
+// UnblockUser
+//
+//	UPDATE user_blocks
+//	SET
+//	  unblocked_by = $1::text,
+//	  unblocked_at = NOW()
+//	WHERE
+//	  user_id = $2
+//	RETURNING
+//	  id, user_id, user_email, blocked_by, blocked_at, unblocked_by, unblocked_at, reason
+func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) (UserBlock, error) {
+	row := q.db.QueryRow(ctx, unblockUser, arg.UnblockedBy, arg.UserID)
+	var i UserBlock
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserEmail,
+		&i.BlockedBy,
+		&i.BlockedAt,
+		&i.UnblockedBy,
+		&i.UnblockedAt,
+		&i.Reason,
+	)
+	return i, err
 }

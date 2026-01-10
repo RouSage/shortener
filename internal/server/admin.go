@@ -6,6 +6,7 @@ import (
 
 	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/labstack/echo/v4"
+	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -209,8 +210,12 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 	})
 }
 
+type BlockUserDTO struct {
+	Reason *string `json:"reason" validate:"omitzero,min=1,max=255"`
+}
 type BlockUserParams struct {
 	DeleteUserURLsParams
+	BlockUserDTO
 }
 
 // blockUser godoc
@@ -218,9 +223,11 @@ type BlockUserParams struct {
 //	@Summary		Block a user
 //	@Description	Block a user in the system, preventing them from accessing their account.
 //	@Tags			Admin
+//	@Accept			json
 //	@Produce		json
 //	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
-//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Param			request	body		BlockUserDTO			true	"Block user request body"
+//	@Success		201		{object}	repository.UserBlock	"User Block entity"
 //	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		401		{object}	HTTPError				"Unauthorized"
 //	@Failure		403		{object}	HTTPError				"Forbidden"
@@ -241,27 +248,70 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 	if err := c.Validate(params); err != nil {
 		return s.failedValidationError(c, err)
 	}
-	span.SetAttributes(attribute.String("userId", params.UserID))
 
-	err := s.authManagement.BlockUser(ctx, params.UserID)
+	span.SetAttributes(attribute.String("userId", params.UserID))
+	if params.Reason != nil {
+		span.SetAttributes(attribute.String("reason", *params.Reason))
+	}
+
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		span.SetStatus(codes.Error, "failed to block the user in auth")
+		span.SetStatus(codes.Error, "failed to start transaction")
+		span.RecordError(err)
+		s.logger.Error().Err(err).Msg("failed to start transaction")
+
+		return echo.ErrInternalServerError
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	var (
+		userId = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
+	qtx := rep.WithTx(tx)
+
+	// Block the user in Auth0 first
+	updatedUser, err := s.authManagement.BlockUser(ctx, params.UserID)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in auth0")
 
 		var apiErr *core.APIError
 		if errors.As(err, &apiErr) {
 			span.RecordError(apiErr.Unwrap())
 
-			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth")
+			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth0")
 			return echo.NewHTTPError(apiErr.StatusCode)
 		}
 
 		span.RecordError(err)
-		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth")
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in auth0")
 
 		return echo.ErrInternalServerError
 	}
 
-	return c.NoContent(http.StatusOK)
+	// Block the user in the DB
+	userBlock, err := qtx.BlockUser(ctx, repository.BlockUserParams{UserID: params.UserID, UserEmail: updatedUser.Email, BlockedBy: *userId, Reason: params.Reason})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to block the user in db")
+		span.RecordError(err)
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to block the user in db")
+
+		_ = s.authManagement.UnblockUser(ctx, params.UserID)
+
+		return echo.ErrInternalServerError
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		span.SetStatus(codes.Error, "failed to commit transaction")
+		span.RecordError(err)
+		s.logger.Error().Err(err).Msg("failed to commit transaction")
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.JSON(http.StatusCreated, userBlock)
 }
 
 // unblockUser godoc
@@ -271,7 +321,7 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 //	@Tags			Admin
 //	@Produce		json
 //	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
-//	@Success		200		{object}	DeleteUserURLsResponse	"Number of URLs deleted"
+//	@Success		200		{object}	repository.UserBlock	"Updated User Block entity"
 //	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		401		{object}	HTTPError				"Unauthorized"
 //	@Failure		403		{object}	HTTPError				"Forbidden"
@@ -294,7 +344,42 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
 
-	err := s.authManagement.UnblockUser(ctx, params.UserID)
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to start transaction")
+		span.RecordError(err)
+		s.logger.Error().Err(err).Msg("failed to start transaction")
+
+		return echo.ErrInternalServerError
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	var (
+		userId = auth.GetUserID(c)
+		rep    = repository.New(s.db)
+	)
+	qtx := rep.WithTx(tx)
+
+	// For unblock, we don't need Auth0 response,
+	// so first, update the DB record, then unblock the user in Auth0.
+	// And if DB update fails, do not make any Auth0 calls
+	userBlock, err := qtx.UnblockUser(ctx, repository.UnblockUserParams{UserID: params.UserID, UnblockedBy: *userId})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to unblock the user in db")
+		span.RecordError(err)
+
+		if rep.IsNotFoundError(err) {
+			s.logger.Error().Err(err).Str("userId", params.UserID).Msg("user block not found")
+			return echo.ErrNotFound
+		}
+
+		s.logger.Error().Err(err).Str("userId", params.UserID).Msg("failed to unblock the user in db")
+		return echo.ErrInternalServerError
+	}
+
+	err = s.authManagement.UnblockUser(ctx, params.UserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to unblock the user in auth")
 
@@ -312,5 +397,13 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 		return echo.ErrInternalServerError
 	}
 
-	return c.NoContent(http.StatusOK)
+	if err := tx.Commit(ctx); err != nil {
+		span.SetStatus(codes.Error, "failed to commit transaction")
+		span.RecordError(err)
+		s.logger.Error().Err(err).Msg("failed to commit transaction")
+
+		return echo.ErrInternalServerError
+	}
+
+	return c.JSON(http.StatusOK, userBlock)
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,10 +9,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/auth0/go-auth0/v2/management"
 	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/rousage/shortener/internal/auth"
+	"github.com/rousage/shortener/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -30,9 +33,9 @@ type mockAuthManager struct {
 	mock.Mock
 }
 
-func (m *mockAuthManager) BlockUser(ctx context.Context, userID string) error {
+func (m *mockAuthManager) BlockUser(ctx context.Context, userID string) (*management.UpdateUserResponseContent, error) {
 	args := m.Called(ctx, userID)
-	return args.Error(0)
+	return args.Get(0).(*management.UpdateUserResponseContent), args.Error(1)
 }
 
 func (m *mockAuthManager) UnblockUser(ctx context.Context, userID string) error {
@@ -265,12 +268,18 @@ func TestBlockUserHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
 	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
-	validUserID := "auth0|507f1f77bcf86cd799439011"
-	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+	var (
+		validUserID   = "auth0|507f1f77bcf86cd799439011"
+		userEmail     = "user@example.com"
+		invalidUserID = "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+		reason        = "Test reason"
+	)
 
 	tests := []struct {
 		name              string
 		userID            string
+		userEmail         string
+		payload           BlockUserDTO
 		withoutPermission bool
 		mockSetup         func() *mockAuthManager
 		expectedStatus    int
@@ -287,17 +296,39 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(nil)
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
 				return m
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:      "successful block (with email)",
+			userID:    validUserID,
+			userEmail: userEmail,
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{Email: &userEmail}, nil)
+				return m
+			},
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:    "successful block (with reason)",
+			userID:  validUserID,
+			payload: BlockUserDTO{Reason: &reason},
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
+				return m
+			},
+			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:   "user not found in Auth0 (404)",
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusNotFound,
 				})
 				return m
@@ -309,7 +340,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusBadRequest,
 				})
 				return m
@@ -321,7 +352,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(&core.APIError{
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, &core.APIError{
 					StatusCode: http.StatusTooManyRequests,
 				})
 				return m
@@ -333,7 +364,7 @@ func TestBlockUserHandler(t *testing.T) {
 			userID: validUserID,
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
-				m.On("BlockUser", mock.Anything, validUserID).Return(assert.AnError)
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, assert.AnError)
 				return m
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -357,7 +388,10 @@ func TestBlockUserHandler(t *testing.T) {
 			// Setup mock auth manager
 			s.authManagement = tt.mockSetup()
 
-			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", tt.userID), nil)
+			body, err := json.Marshal(tt.payload)
+			require.NoError(t, err, "could not marshal payload")
+
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", tt.userID), bytes.NewBuffer(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 
@@ -379,12 +413,28 @@ func TestBlockUserHandler(t *testing.T) {
 			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserBlock)(s.blockUserHandler))
 
 			// Assertions
-			err := handler(c)
+			err = handler(c)
 			if he, ok := err.(*echo.HTTPError); ok {
 				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual repository.UserBlock
+				err = json.NewDecoder(res.Body).Decode(&actual)
+
+				if tt.expectedStatus != http.StatusBadRequest {
+					require.NoError(t, err, "error decoding response body")
+					assert.Equal(t, tt.userID, actual.UserID, "user id should be the same")
+					assert.Equal(t, adminID, actual.BlockedBy, "blocked by should be the admin")
+					assert.Equal(t, tt.payload.Reason, actual.Reason, "reason should be the same")
+					assert.NotNil(t, actual.BlockedAt, "blocked at should not be nil")
+					assert.Nil(t, actual.UnblockedBy, "unblocked by should be nil")
+					assert.Nil(t, actual.UnblockedAt, "unblocked at should be nil")
+					if actual.UserEmail != nil {
+						assert.Equal(t, &tt.userEmail, actual.UserEmail, "user email should be the same")
+					}
+				}
 			}
 		})
 	}
@@ -398,6 +448,10 @@ func TestUnblockUserHandler(t *testing.T) {
 
 	validUserID := "auth0|507f1f77bcf86cd799439011"
 	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+
+	rep := repository.New(s.db)
+	_, err := rep.BlockUser(context.Background(), repository.BlockUserParams{UserID: validUserID, BlockedBy: adminID})
+	require.NoError(t, err)
 
 	tests := []struct {
 		name              string
@@ -422,6 +476,16 @@ func TestUnblockUserHandler(t *testing.T) {
 				return m
 			},
 			expectedStatus: http.StatusOK,
+		},
+		{
+			name:   "user block not found",
+			userID: "non-existent-user-id",
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("UnblockUser", mock.Anything, validUserID).Return(nil)
+				return m
+			},
+			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:   "user not found in Auth0 (404)",
@@ -516,6 +580,18 @@ func TestUnblockUserHandler(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual repository.UserBlock
+				err = json.NewDecoder(res.Body).Decode(&actual)
+
+				if tt.expectedStatus != http.StatusBadRequest {
+					require.NoError(t, err, "error decoding response body")
+					assert.Equal(t, tt.userID, actual.UserID, "user id should be the same")
+					assert.Equal(t, adminID, actual.BlockedBy, "blocked by should be the admin")
+					assert.NotNil(t, actual.BlockedAt, "blocked at should not be nil")
+					assert.Equal(t, &adminID, actual.UnblockedBy, "unblocked by should be the admin")
+					assert.NotNil(t, actual.UnblockedAt, "unblocked at should not be nil")
+				}
 			}
 		})
 	}
