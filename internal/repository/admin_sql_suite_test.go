@@ -15,9 +15,33 @@ import (
 )
 
 var (
-	userID_1 = "user-id"
-	userID_2 = "user-id-2"
-	adminID  = "adminID"
+	userID_1  = "user-id"
+	userID_2  = "user-id-2"
+	adminID   = "adminID"
+	urlParams = []CreateUrlParams{
+		{ID: "short-url1", LongUrl: "https://long.url", UserID: &userID_1, IsCustom: true},
+		{ID: "short-url2", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url3", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url4", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url5", LongUrl: "https://long.url", UserID: &userID_1},
+		{ID: "short-url6", LongUrl: "https://long.url", UserID: &userID_2},
+		{ID: "short-url7", LongUrl: "https://long.url", UserID: &userID_2, IsCustom: true},
+		{ID: "short-url8", LongUrl: "https://long.url"},
+		{ID: "short-url9", LongUrl: "https://long.url"},
+		{ID: "short-url10", LongUrl: "https://long.url"},
+	}
+	blockUserParams = []BlockUserParams{
+		{UserID: userID_1, BlockedBy: adminID},
+		{UserID: "user-2", BlockedBy: adminID},
+		{UserID: "user-3", BlockedBy: adminID},
+		{UserID: "user-4", BlockedBy: adminID},
+		{UserID: "user-5", BlockedBy: adminID},
+		{UserID: "user-6", BlockedBy: adminID},
+		{UserID: "user-7", BlockedBy: adminID},
+		{UserID: "user-8", BlockedBy: adminID},
+		{UserID: "user-9", BlockedBy: adminID},
+		{UserID: "user-10", BlockedBy: adminID},
+	}
 )
 
 type AdminTestSuite struct {
@@ -34,6 +58,21 @@ func (suite *AdminTestSuite) SetupSuite() {
 	// Create a new postgres container for the whole test suite
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
 	suite.Require().NoError(err, "could not start postgres container")
+
+	logger := zerolog.New(io.Discard)
+	db := database.Connect(logger, pgContainer.DatabaseConfig)
+	queries := New(db)
+
+	// Populate the DB with some data for tests
+	for _, arg := range urlParams {
+		_, err := queries.CreateUrl(suite.ctx, arg)
+		suite.Require().NoError(err, "error creating seed urls")
+	}
+	for _, arg := range blockUserParams {
+		_, err := queries.BlockUser(suite.ctx, arg)
+		suite.Require().NoError(err, "error creating seed user blocks")
+	}
+	db.Close()
 
 	// Snapshot the DB to restore it later
 	err = pgContainer.Snapshot(suite.ctx)
@@ -52,24 +91,6 @@ func (suite *AdminTestSuite) SetupTest() {
 	logger := zerolog.New(io.Discard)
 	db := database.Connect(logger, suite.container.DatabaseConfig)
 	queries := New(db)
-
-	// Populate the DB with some data for each test
-	urlParams := []CreateUrlParams{
-		{ID: "short-url1", LongUrl: "https://long.url", UserID: &userID_1, IsCustom: true},
-		{ID: "short-url2", LongUrl: "https://long.url", UserID: &userID_1},
-		{ID: "short-url3", LongUrl: "https://long.url", UserID: &userID_1},
-		{ID: "short-url4", LongUrl: "https://long.url", UserID: &userID_1},
-		{ID: "short-url5", LongUrl: "https://long.url", UserID: &userID_1},
-		{ID: "short-url6", LongUrl: "https://long.url", UserID: &userID_2},
-		{ID: "short-url7", LongUrl: "https://long.url", UserID: &userID_2, IsCustom: true},
-		{ID: "short-url8", LongUrl: "https://long.url"},
-		{ID: "short-url9", LongUrl: "https://long.url"},
-		{ID: "short-url10", LongUrl: "https://long.url"},
-	}
-	for _, arg := range urlParams {
-		_, err := queries.CreateUrl(suite.ctx, arg)
-		suite.Require().NoError(err, "error creating seed urls")
-	}
 
 	suite.db = db
 	suite.queries = queries
@@ -196,11 +217,6 @@ func (suite *AdminTestSuite) TestBlockUser() {
 func (suite *AdminTestSuite) TestUnblockUser() {
 	t := suite.T()
 
-	// Block one user first
-	blockParams := BlockUserParams{UserID: userID_1, BlockedBy: adminID}
-	_, err := suite.queries.BlockUser(suite.ctx, blockParams)
-	suite.Require().NoError(err)
-
 	tests := []struct {
 		name   string
 		params UnblockUserParams
@@ -220,11 +236,34 @@ func (suite *AdminTestSuite) TestUnblockUser() {
 				assert.Equal(t, tt.params.UserID, userBlock.UserID, "user id should be the same")
 				assert.Equal(t, &tt.params.UnblockedBy, userBlock.UnblockedBy, "unblocked by should be the same")
 
-				assert.Equal(t, blockParams.BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
-				assert.Equal(t, blockParams.Reason, userBlock.Reason, "reason should be the same")
-				assert.Equal(t, blockParams.UserEmail, userBlock.UserEmail, "user email should be the same")
+				assert.Equal(t, blockUserParams[0].BlockedBy, userBlock.BlockedBy, "blocked by should be the same")
+				assert.Equal(t, blockUserParams[0].Reason, userBlock.Reason, "reason should be the same")
+				assert.Equal(t, blockUserParams[0].UserEmail, userBlock.UserEmail, "user email should be the same")
 
 			}
+		})
+	}
+}
+
+func (suite *AdminTestSuite) TestGetUserBlocks() {
+	t := suite.T()
+
+	tests := []struct {
+		name           string
+		params         GetUserBlocksParams
+		expectedBlocks int
+	}{
+		{name: "get all urls", params: GetUserBlocksParams{Offset: 0, Limit: 25}, expectedBlocks: 10},
+		{name: "return urls for offset=0 and limit=5", params: GetUserBlocksParams{Offset: 0, Limit: 5}, expectedBlocks: 5},
+		{name: "return urls for offset=5 and limit=5", params: GetUserBlocksParams{Offset: 5, Limit: 5}, expectedBlocks: 5},
+		{name: "return urls for offset=10 and limit=5", params: GetUserBlocksParams{Offset: 10, Limit: 5}, expectedBlocks: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userBlocks, err := suite.queries.GetUserBlocks(suite.ctx, tt.params)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedBlocks, len(userBlocks))
 		})
 	}
 }
