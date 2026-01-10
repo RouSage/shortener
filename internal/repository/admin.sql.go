@@ -233,6 +233,7 @@ SELECT
   blocked_at,
   unblocked_by,
   unblocked_at,
+  reason,
   COUNT(*) OVER () as total_count
 FROM
   user_blocks
@@ -257,6 +258,7 @@ type GetUserBlocksRow struct {
 	BlockedAt   time.Time  `json:"blockedAt"`
 	UnblockedBy *string    `json:"unblockedBy"`
 	UnblockedAt *time.Time `json:"unblockedAt"`
+	Reason      *string    `json:"reason"`
 	TotalCount  int64      `json:"totalCount"`
 }
 
@@ -270,6 +272,7 @@ type GetUserBlocksRow struct {
 //	  blocked_at,
 //	  unblocked_by,
 //	  unblocked_at,
+//	  reason,
 //	  COUNT(*) OVER () as total_count
 //	FROM
 //	  user_blocks
@@ -296,6 +299,7 @@ func (q *Queries) GetUserBlocks(ctx context.Context, arg GetUserBlocksParams) ([
 			&i.BlockedAt,
 			&i.UnblockedBy,
 			&i.UnblockedAt,
+			&i.Reason,
 			&i.TotalCount,
 		); err != nil {
 			return nil, err

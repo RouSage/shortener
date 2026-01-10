@@ -70,6 +70,7 @@ SELECT
   blocked_at,
   unblocked_by,
   unblocked_at,
+  reason,
   COUNT(*) OVER () as total_count
 FROM
   user_blocks

@@ -407,3 +407,78 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, userBlock)
 }
+
+type UserBlocksFilters struct {
+	PaginationFilters
+}
+type PaginatedUserBlocks struct {
+	Items      []repository.UserBlock `json:"items"`
+	Pagination Pagination             `json:"pagination"`
+}
+
+// getUserBlocks godoc
+//
+//	@Summary		Get all User Blocks
+//	@Description	Retrieves a paginated list of all User Blocks created by admins
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			page		query		int					true	"Page number"	minimum(1)	maximum(10000)	default(1)
+//	@Param			pageSize	query		int					true	"Page size"		minimum(1)	maximum(100)	default(20)
+//	@Success		200			{object}	PaginatedUserBlocks	"Paginated list of User Blocks"
+//	@Failure		400			{object}	HTTPValidationError	"Validation failed"
+//	@Failure		401			{object}	HTTPError			"Unauthorized"
+//	@Failure		403			{object}	HTTPError			"Forbidden"
+//	@Failure		500			{object}	HTTPError			"Internal server error"
+//	@Security		BearerAuth
+//	@Router			/v1/admin/users/blocks [get]
+func (s *Server) getUserBlocks(c echo.Context) error {
+	ctx, span := tracer.Start(c.Request().Context(), "admin.GetUserBlocks")
+	defer span.End()
+
+	params := new(UserBlocksFilters)
+	if err := c.Bind(params); err != nil {
+		span.SetStatus(codes.Error, "failed to bind request")
+		span.RecordError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(params); err != nil {
+		return s.failedValidationError(c, err)
+	}
+
+	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
+
+	var rep = repository.New(s.db)
+	userBlocks, err := rep.GetUserBlocks(ctx, repository.GetUserBlocksParams{Limit: params.limit(), Offset: params.offset()})
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to get user blocks")
+		span.RecordError(err)
+
+		return echo.ErrInternalServerError
+	}
+
+	var totalCount int
+	if len(userBlocks) > 0 {
+		totalCount = int(userBlocks[0].TotalCount)
+	}
+
+	items := make([]repository.UserBlock, len(userBlocks))
+	for i, userBlock := range userBlocks {
+		items[i] = repository.UserBlock{
+			ID:          userBlock.ID,
+			UserID:      userBlock.UserID,
+			UserEmail:   userBlock.UserEmail,
+			BlockedBy:   userBlock.BlockedBy,
+			BlockedAt:   userBlock.BlockedAt,
+			UnblockedBy: userBlock.UnblockedBy,
+			UnblockedAt: userBlock.UnblockedAt,
+			Reason:      userBlock.Reason,
+		}
+	}
+
+	response := &PaginatedUserBlocks{
+		Items:      items,
+		Pagination: calculatePagination(totalCount, int(params.Page), int(params.PageSize)),
+	}
+
+	return c.JSON(http.StatusOK, response)
+}

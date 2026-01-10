@@ -25,6 +25,7 @@ const (
 	GetURLs       permission = "get:urls"
 	UserBlock     permission = "user:block"
 	UserUnblock   permission = "user:unblock"
+	GetUserBlocks permission = "get:user-blocks"
 )
 
 // CustomClaims contains custom data we want from the token
