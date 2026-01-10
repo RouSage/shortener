@@ -60,3 +60,22 @@ WHERE
   user_id = sqlc.arg ('user_id')
 RETURNING
   *;
+
+-- name: GetUserBlocks :many
+SELECT
+  id,
+  user_id,
+  user_email,
+  blocked_by,
+  blocked_at,
+  unblocked_by,
+  unblocked_at,
+  COUNT(*) OVER () as total_count
+FROM
+  user_blocks
+ORDER BY
+  blocked_at DESC
+LIMIT
+  sqlc.arg ('limit')
+OFFSET
+  sqlc.arg ('offset');

@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS user_blocks (
 
 CREATE UNIQUE INDEX IF NOT EXISTS user_blocks_user_id_idx ON user_blocks (user_id);
 
-CREATE INDEX IF NOT EXISTS user_blocks_blocked_at_idx ON user_blocks (blocked_at);
+CREATE INDEX IF NOT EXISTS user_blocks_blocked_at_desc_idx ON user_blocks (blocked_at DESC);
 
 COMMIT;

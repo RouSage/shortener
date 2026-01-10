@@ -224,6 +224,90 @@ func (q *Queries) GetURLs(ctx context.Context, arg GetURLsParams) ([]GetURLsRow,
 	return items, nil
 }
 
+const getUserBlocks = `-- name: GetUserBlocks :many
+SELECT
+  id,
+  user_id,
+  user_email,
+  blocked_by,
+  blocked_at,
+  unblocked_by,
+  unblocked_at,
+  COUNT(*) OVER () as total_count
+FROM
+  user_blocks
+ORDER BY
+  blocked_at DESC
+LIMIT
+  $2
+OFFSET
+  $1
+`
+
+type GetUserBlocksParams struct {
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
+}
+
+type GetUserBlocksRow struct {
+	ID          int32      `json:"id"`
+	UserID      string     `json:"userId"`
+	UserEmail   *string    `json:"userEmail"`
+	BlockedBy   string     `json:"blockedBy"`
+	BlockedAt   time.Time  `json:"blockedAt"`
+	UnblockedBy *string    `json:"unblockedBy"`
+	UnblockedAt *time.Time `json:"unblockedAt"`
+	TotalCount  int64      `json:"totalCount"`
+}
+
+// GetUserBlocks
+//
+//	SELECT
+//	  id,
+//	  user_id,
+//	  user_email,
+//	  blocked_by,
+//	  blocked_at,
+//	  unblocked_by,
+//	  unblocked_at,
+//	  COUNT(*) OVER () as total_count
+//	FROM
+//	  user_blocks
+//	ORDER BY
+//	  blocked_at DESC
+//	LIMIT
+//	  $2
+//	OFFSET
+//	  $1
+func (q *Queries) GetUserBlocks(ctx context.Context, arg GetUserBlocksParams) ([]GetUserBlocksRow, error) {
+	rows, err := q.db.Query(ctx, getUserBlocks, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserBlocksRow{}
+	for rows.Next() {
+		var i GetUserBlocksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserEmail,
+			&i.BlockedBy,
+			&i.BlockedAt,
+			&i.UnblockedBy,
+			&i.UnblockedAt,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const unblockUser = `-- name: UnblockUser :one
 UPDATE user_blocks
 SET
