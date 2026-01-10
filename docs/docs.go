@@ -310,6 +310,77 @@ const docTemplate = `{
                 ]
             }
         },
+        "/v1/admin/users/blocks": {
+            "get": {
+                "description": "Retrieves a paginated list of all User Blocks created by admins",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get all User Blocks",
+                "parameters": [
+                    {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "pageSize",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated list of User Blocks",
+                        "schema": {
+                            "$ref": "#/definitions/server.PaginatedUserBlocks"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPValidationError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/server.HTTPError"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/v1/admin/users/unblock/{userId}": {
             "post": {
                 "description": "Unblock a user in the system, allowing them to access their account.",
@@ -795,6 +866,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/repository.Url"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/server.Pagination"
+                }
+            }
+        },
+        "server.PaginatedUserBlocks": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/repository.UserBlock"
                     }
                 },
                 "pagination": {

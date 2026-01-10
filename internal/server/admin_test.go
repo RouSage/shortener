@@ -598,3 +598,105 @@ func TestUnblockUserHandler(t *testing.T) {
 
 	t.Cleanup(cleanup)
 }
+
+func TestGetUserBlocks(t *testing.T) {
+	s, e, cleanup := setupTestServer(t)
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+
+	// Setup mock to expect BlockUser calls for test data setup
+	mockAuth := &mockAuthManager{}
+	mockAuth.On("BlockUser", mock.Anything, mock.Anything).Return(&management.UpdateUserResponseContent{}, nil)
+	s.authManagement = mockAuth
+
+	for i := range 15 {
+		blockUser(t, s, e, fmt.Sprintf("user-%d", i), BlockUserDTO{Reason: nil})
+	}
+
+	tests := []struct {
+		name              string
+		withoutPermission bool
+		filters           UserBlocksFilters
+		expectedStatus    int
+		expectedBlocks    int
+	}{
+		{name: "no required permission", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 101}}, withoutPermission: true, expectedStatus: http.StatusForbidden},
+		{name: "return all user blocks", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 25}}, expectedStatus: http.StatusOK, expectedBlocks: 15},
+		{name: "return user blocks for page=1 and pageSize=5", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 5}}, expectedStatus: http.StatusOK, expectedBlocks: 5},
+		{name: "return user blocks for page=3 and pageSize=5", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 3, PageSize: 5}}, expectedStatus: http.StatusOK, expectedBlocks: 5},
+		{name: "return user blocks for page=4 and pageSize=5", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 4, PageSize: 5}}, expectedStatus: http.StatusOK},
+		{name: "error on 0 page", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 0, PageSize: 25}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on page > max", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 20_000, PageSize: 25}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on 0 pageSize", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 0}}, expectedStatus: http.StatusBadRequest},
+		{name: "error on pageSize > max", filters: UserBlocksFilters{PaginationFilters: PaginationFilters{Page: 1, PageSize: 101}}, expectedStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := fmt.Sprintf("/v1/admin/users/blocks?page=%d&pageSize=%d", tt.filters.Page, tt.filters.PageSize)
+
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			res := httptest.NewRecorder()
+			c := e.NewContext(req, res)
+			c.SetPath("/v1/admin/users/blocks")
+
+			claims := &validator.ValidatedClaims{
+				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+				CustomClaims:     &auth.CustomClaims{},
+			}
+			if !tt.withoutPermission {
+				claims.CustomClaims.(*auth.CustomClaims).Permissions = []string{string(auth.GetUserBlocks)}
+			}
+			c.Set(string(auth.ClaimsContextKey), claims)
+
+			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.GetUserBlocks)(s.getUserBlocks))
+
+			// Assertions
+			err := handler(c)
+			if he, ok := err.(*echo.HTTPError); ok {
+				assert.Equal(t, tt.expectedStatus, he.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatus, res.Code)
+
+				var actual PaginatedUserBlocks
+				err = json.NewDecoder(res.Body).Decode(&actual)
+				require.NoError(t, err, "error decoding response body")
+				assert.Equal(t, tt.expectedBlocks, len(actual.Items), "incorrect number of user blocks")
+			}
+		})
+	}
+
+	t.Cleanup(cleanup)
+}
+
+func blockUser(t *testing.T, s *Server, e *echo.Echo, userID string, payload BlockUserDTO) repository.UserBlock {
+	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	claims := &validator.ValidatedClaims{
+		RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
+		CustomClaims:     &auth.CustomClaims{Permissions: []string{string(auth.UserBlock)}},
+	}
+
+	body, err := json.Marshal(payload)
+	require.NoError(t, err, "could not marshal payload")
+
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", userID), bytes.NewBuffer(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	res := httptest.NewRecorder()
+
+	c := e.NewContext(req, res)
+	c.SetPath("/v1/admin/users/block/:userId")
+	c.SetParamNames("userId")
+	c.SetParamValues(userID)
+	c.Set(string(auth.ClaimsContextKey), claims)
+
+	handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserBlock)(s.blockUserHandler))
+	err = handler(c)
+	require.NoError(t, err)
+
+	var userBlock repository.UserBlock
+	err = json.NewDecoder(res.Body).Decode(&userBlock)
+	require.NoError(t, err, "error decoding response body")
+
+	return userBlock
+}
