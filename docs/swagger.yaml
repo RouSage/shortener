@@ -38,6 +38,13 @@ definitions:
       userId:
         type: string
     type: object
+  server.BlockUserDTO:
+    properties:
+      reason:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
   server.CreateShortUrlDTO:
     properties:
       shortCode:
@@ -278,6 +285,8 @@ paths:
       - Admin
   /v1/admin/users/block/{userId}:
     post:
+      consumes:
+      - application/json
       description: Block a user in the system, preventing them from accessing their
         account.
       parameters:
@@ -288,6 +297,12 @@ paths:
         name: userId
         required: true
         type: string
+      - description: Block user request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.BlockUserDTO'
       produces:
       - application/json
       responses:

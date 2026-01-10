@@ -210,8 +210,12 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 	})
 }
 
+type BlockUserDTO struct {
+	Reason *string `json:"reason" validate:"omitzero,min=1,max=255"`
+}
 type BlockUserParams struct {
 	DeleteUserURLsParams
+	BlockUserDTO
 }
 
 // blockUser godoc
@@ -219,8 +223,10 @@ type BlockUserParams struct {
 //	@Summary		Block a user
 //	@Description	Block a user in the system, preventing them from accessing their account.
 //	@Tags			Admin
+//	@Accept			json
 //	@Produce		json
 //	@Param			userId	path		string					true	"ID of the user"	minlength(1)	maxlength(50)
+//	@Param			request	body		BlockUserDTO			true	"Block user request body"
 //	@Success		201		{object}	repository.UserBlock	"User Block entity"
 //	@Failure		400		{object}	HTTPValidationError		"Validation failed"
 //	@Failure		401		{object}	HTTPError				"Unauthorized"
@@ -242,7 +248,11 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 	if err := c.Validate(params); err != nil {
 		return s.failedValidationError(c, err)
 	}
+
 	span.SetAttributes(attribute.String("userId", params.UserID))
+	if params.Reason != nil {
+		span.SetAttributes(attribute.String("reason", *params.Reason))
+	}
 
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -282,7 +292,7 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 	}
 
 	// Block the user in the DB
-	userBlock, err := qtx.BlockUser(ctx, repository.BlockUserParams{UserID: params.UserID, UserEmail: updatedUser.Email, BlockedBy: *userId})
+	userBlock, err := qtx.BlockUser(ctx, repository.BlockUserParams{UserID: params.UserID, UserEmail: updatedUser.Email, BlockedBy: *userId, Reason: params.Reason})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to block the user in db")
 		span.RecordError(err)

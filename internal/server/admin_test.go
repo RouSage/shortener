@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -271,12 +272,14 @@ func TestBlockUserHandler(t *testing.T) {
 		validUserID   = "auth0|507f1f77bcf86cd799439011"
 		userEmail     = "user@example.com"
 		invalidUserID = "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
+		reason        = "Test reason"
 	)
 
 	tests := []struct {
 		name              string
 		userID            string
 		userEmail         string
+		payload           BlockUserDTO
 		withoutPermission bool
 		mockSetup         func() *mockAuthManager
 		expectedStatus    int
@@ -305,6 +308,17 @@ func TestBlockUserHandler(t *testing.T) {
 			mockSetup: func() *mockAuthManager {
 				m := &mockAuthManager{}
 				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{Email: &userEmail}, nil)
+				return m
+			},
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name:    "successful block (with reason)",
+			userID:  validUserID,
+			payload: BlockUserDTO{Reason: &reason},
+			mockSetup: func() *mockAuthManager {
+				m := &mockAuthManager{}
+				m.On("BlockUser", mock.Anything, validUserID).Return(&management.UpdateUserResponseContent{}, nil)
 				return m
 			},
 			expectedStatus: http.StatusCreated,
@@ -374,7 +388,10 @@ func TestBlockUserHandler(t *testing.T) {
 			// Setup mock auth manager
 			s.authManagement = tt.mockSetup()
 
-			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", tt.userID), nil)
+			body, err := json.Marshal(tt.payload)
+			require.NoError(t, err, "could not marshal payload")
+
+			req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/v1/admin/users/block/%s", tt.userID), bytes.NewBuffer(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			res := httptest.NewRecorder()
 
@@ -396,7 +413,7 @@ func TestBlockUserHandler(t *testing.T) {
 			handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserBlock)(s.blockUserHandler))
 
 			// Assertions
-			err := handler(c)
+			err = handler(c)
 			if he, ok := err.(*echo.HTTPError); ok {
 				assert.Equal(t, tt.expectedStatus, he.Code)
 			} else {
@@ -410,6 +427,7 @@ func TestBlockUserHandler(t *testing.T) {
 					require.NoError(t, err, "error decoding response body")
 					assert.Equal(t, tt.userID, actual.UserID, "user id should be the same")
 					assert.Equal(t, adminID, actual.BlockedBy, "blocked by should be the admin")
+					assert.Equal(t, tt.payload.Reason, actual.Reason, "reason should be the same")
 					assert.NotNil(t, actual.BlockedAt, "blocked at should not be nil")
 					assert.Nil(t, actual.UnblockedBy, "unblocked by should be nil")
 					assert.Nil(t, actual.UnblockedAt, "unblocked at should be nil")
