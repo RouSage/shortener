@@ -62,8 +62,7 @@ func (s *Server) getURLs(c echo.Context) error {
 		span.SetAttributes(attribute.String("userId", *params.UserID))
 	}
 
-	var rep = repository.New(s.db)
-	urls, err := rep.GetURLs(ctx, repository.GetURLsParams{IsCustom: params.IsCustom, UserID: params.UserID, Limit: params.limit(), Offset: params.offset()})
+	urls, err := s.rep.GetURLs(ctx, repository.GetURLsParams{IsCustom: params.IsCustom, UserID: params.UserID, Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get urls")
 		span.RecordError(err)
@@ -129,9 +128,7 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
 
-	var rep = repository.New(s.db)
-
-	rowsAffected, err := rep.DeleteURL(ctx, params.Code)
+	rowsAffected, err := s.rep.DeleteURL(ctx, params.Code)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to delete url")
 		span.RecordError(err)
@@ -189,9 +186,7 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
 
-	var rep = repository.New(s.db)
-
-	deletedIDs, err := rep.DeleteAllUserURLs(ctx, params.UserID)
+	deletedIDs, err := s.rep.DeleteAllUserURLs(ctx, params.UserID)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to delete user urls")
 		span.RecordError(err)
@@ -266,11 +261,8 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 		_ = tx.Rollback(ctx)
 	}()
 
-	var (
-		userId = auth.GetUserID(c)
-		rep    = repository.New(s.db)
-	)
-	qtx := rep.WithTx(tx)
+	userId := auth.GetUserID(c)
+	qtx := s.rep.WithTx(tx)
 
 	// Block the user in Auth0 first
 	updatedUser, err := s.authManagement.BlockUser(ctx, params.UserID)
@@ -356,11 +348,8 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 		_ = tx.Rollback(ctx)
 	}()
 
-	var (
-		userId = auth.GetUserID(c)
-		rep    = repository.New(s.db)
-	)
-	qtx := rep.WithTx(tx)
+	userId := auth.GetUserID(c)
+	qtx := s.rep.WithTx(tx)
 
 	// For unblock, we don't need Auth0 response,
 	// so first, update the DB record, then unblock the user in Auth0.
@@ -370,7 +359,7 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 		span.SetStatus(codes.Error, "failed to unblock the user in db")
 		span.RecordError(err)
 
-		if rep.IsNotFoundError(err) {
+		if s.rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Str("userId", params.UserID).Msg("user block not found")
 			return echo.ErrNotFound
 		}
@@ -447,8 +436,7 @@ func (s *Server) getUserBlocks(c echo.Context) error {
 
 	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
 
-	var rep = repository.New(s.db)
-	userBlocks, err := rep.GetUserBlocks(ctx, repository.GetUserBlocksParams{Limit: params.limit(), Offset: params.offset()})
+	userBlocks, err := s.rep.GetUserBlocks(ctx, repository.GetUserBlocksParams{Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get user blocks")
 		span.RecordError(err)

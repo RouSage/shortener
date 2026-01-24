@@ -449,8 +449,7 @@ func TestUnblockUserHandler(t *testing.T) {
 	validUserID := "auth0|507f1f77bcf86cd799439011"
 	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
 
-	rep := repository.New(s.db)
-	_, err := rep.BlockUser(context.Background(), repository.BlockUserParams{UserID: validUserID, BlockedBy: adminID})
+	_, err := s.rep.BlockUser(context.Background(), repository.BlockUserParams{UserID: validUserID, BlockedBy: adminID})
 	require.NoError(t, err)
 
 	tests := []struct {

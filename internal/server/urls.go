@@ -52,7 +52,6 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 
 	var (
 		userId   = auth.GetUserID(c)
-		rep      = repository.New(s.db)
 		shortUrl string
 		newUrl   repository.Url
 		err      error
@@ -69,7 +68,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusForbidden, "Only authenticated users can create custom short codes")
 		}
 
-		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
+		newUrl, err = s.rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       dto.ShortCode,
 			LongUrl:  dto.URL,
 			IsCustom: true,
@@ -79,14 +78,14 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			span.SetStatus(codes.Error, "failed to create short url with custom short code")
 			span.RecordError(err)
 
-			if rep.IsDuplicateKeyError(err) {
+			if s.rep.IsDuplicateKeyError(err) {
 				return c.JSON(http.StatusConflict, &HTTPValidationError{
 					HTTPError: HTTPError{Message: "Validation failed"},
 					Errors: appvalidator.ValidationError{
 						"shortCode": "Short code is not available",
 					},
 				})
-			} else if rep.IsCheckConstraintError(err) {
+			} else if s.rep.IsCheckConstraintError(err) {
 				return c.JSON(http.StatusConflict, &HTTPValidationError{
 					HTTPError: HTTPError{Message: "Validation failed"},
 					Errors:    appvalidator.ValidationError{"shortCode": "Custom short code could not be created"},
@@ -108,7 +107,7 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			break
 		}
 
-		newUrl, err = rep.CreateUrl(ctx, repository.CreateUrlParams{
+		newUrl, err = s.rep.CreateUrl(ctx, repository.CreateUrlParams{
 			ID:       shortUrl,
 			LongUrl:  dto.URL,
 			IsCustom: false,
@@ -118,11 +117,11 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 			break
 		}
 
-		if rep.IsDuplicateKeyError(err) {
+		if s.rep.IsDuplicateKeyError(err) {
 			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
 			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
 			continue
-		} else if rep.IsCheckConstraintError(err) {
+		} else if s.rep.IsCheckConstraintError(err) {
 			return c.JSON(http.StatusConflict, &HTTPValidationError{
 				HTTPError: HTTPError{Message: "Validation failed"},
 				Errors:    appvalidator.ValidationError{"shortCode": "Custom short code could not be created"},
@@ -190,13 +189,12 @@ func (s *Server) getLongUrlHandler(c echo.Context) error {
 		})
 	}
 
-	rep := repository.New(s.db)
-	longUrl, err = rep.GetLongUrl(ctx, params.Code)
+	longUrl, err = s.rep.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get long url")
 		span.RecordError(err)
 
-		if rep.IsNotFoundError(err) {
+		if s.rep.IsNotFoundError(err) {
 			s.logger.Error().Err(err).Str("code", params.Code).Msg("long url not found")
 			return echo.ErrNotFound
 		}
@@ -256,12 +254,9 @@ func (s *Server) getUserUrls(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.Int("page", int(params.Page)), attribute.Int("pageSize", int(params.PageSize)))
 
-	var (
-		userID = auth.GetUserID(c)
-		rep    = repository.New(s.db)
-	)
+	userID := auth.GetUserID(c)
 
-	urls, err := rep.GetUserUrls(ctx, repository.GetUserUrlsParams{UserID: userID, Limit: params.limit(), Offset: params.offset()})
+	urls, err := s.rep.GetUserUrls(ctx, repository.GetUserUrlsParams{UserID: userID, Limit: params.limit(), Offset: params.offset()})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to get user urls")
 		span.RecordError(err)
@@ -326,12 +321,9 @@ func (s *Server) deletShortUrlHandler(c echo.Context) error {
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
 
-	var (
-		userID = auth.GetUserID(c)
-		rep    = repository.New(s.db)
-	)
+	userID := auth.GetUserID(c)
 
-	rowsAffected, err := rep.DeleteUserURL(ctx, repository.DeleteUserURLParams{ID: params.Code, UserID: userID})
+	rowsAffected, err := s.rep.DeleteUserURL(ctx, repository.DeleteUserURLParams{ID: params.Code, UserID: userID})
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to delete short url")
 		span.RecordError(err)
