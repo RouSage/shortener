@@ -46,7 +46,7 @@ func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) e
 		return shutdown, err
 	}
 
-	tracerProvider, err := newTracerProvider(ctx, res, cfg.TracesEndpoint)
+	tracerProvider, err := newTracerProvider(ctx, res, cfg)
 	if err != nil {
 		handleErr(err)
 		return shutdown, err
@@ -64,14 +64,16 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTracerProvider(ctx context.Context, res *resource.Resource, endpoint string) (*sdktrace.TracerProvider, error) {
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpoint))
+func newTracerProvider(ctx context.Context, res *resource.Resource, cfg config.Otel) (*sdktrace.TracerProvider, error) {
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(cfg.TracesEndpoint))
 	if err != nil {
 		return nil, err
 	}
 
+	sampler := sdktrace.ParentBased(sdktrace.TraceIDRatioBased(cfg.SamplingRatio))
+
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSampler(sampler),
 		sdktrace.WithResource(res),
 		sdktrace.WithBatcher(traceExporter),
 	)
