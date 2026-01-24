@@ -1,4 +1,4 @@
-package server
+package otel
 
 import (
 	"context"
@@ -13,10 +13,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
-var (
-	tracer      = otel.Tracer("github.com/rousage/shortener")
-	serviceName = semconv.ServiceNameKey.String("url-shortener")
-)
+var ServiceName = semconv.ServiceNameKey.String("shortener")
 
 func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
@@ -43,7 +40,7 @@ func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) e
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	res, err := resource.New(ctx, resource.WithAttributes(serviceName))
+	res, err := resource.New(ctx, resource.WithAttributes(ServiceName))
 	if err != nil {
 		handleErr(err)
 		return shutdown, err
