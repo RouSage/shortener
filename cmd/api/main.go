@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/rousage/shortener/internal/config"
+	"github.com/rousage/shortener/internal/otel"
 	"github.com/rousage/shortener/internal/server"
 )
 
@@ -50,7 +51,7 @@ func main() {
 
 	srv := server.New(cfg)
 
-	otelShutdown, err := server.SetupOTelSDK(ctx, cfg.Otel)
+	otelShutdown, err := otel.SetupOTelSDK(ctx, cfg.Otel)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error setting up OpenTelemetry SDK")
 	}

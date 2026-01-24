@@ -15,7 +15,10 @@ import (
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/repository"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("github.com/rousage/shortener/internal/server")
 
 // AuthManager defines the interface for user management operations with Auth0
 type AuthManager interface {

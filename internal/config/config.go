@@ -59,8 +59,12 @@ func Load() (*Config, error) {
 	return config, nil
 }
 
+func getOptionalEnv(key string) string {
+	return os.Getenv(key)
+}
+
 func getEnv(key string) (string, error) {
-	if value := os.Getenv(key); value != "" {
+	if value := getOptionalEnv(key); value != "" {
 		return value, nil
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
+	"github.com/rousage/shortener/internal/otel"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"golang.org/x/time/rate"
@@ -36,7 +37,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
 
-	e.Use(otelecho.Middleware(serviceName.Value.AsString()))
+	e.Use(otelecho.Middleware(otel.ServiceName.Value.AsString()))
 	e.Use(middleware.RequestID())
 
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
