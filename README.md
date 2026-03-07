@@ -18,12 +18,12 @@ These instructions will get you a copy of the project up and running on your loc
 
 SQL queries are implemented using [sqlc](https://sqlc.dev/). Use the `sqlc generate` command to generate the Go code for the SQL queries.
 
-## Makefile
+## Just
 
-List of available make commands
+List of available just commands
 
 ```bash
-make help
+just
 ```
 
 ### Running the application
@@ -55,9 +55,9 @@ docker compose up -d db valkey
 Run the application
 
 ```bash
-make run
-or
-make watch # run the app with live reload
+just run
+# or
+just watch # run the app with live reload
 ```
 
 ### Build/Run commands
@@ -65,25 +65,25 @@ make watch # run the app with live reload
 Build the application
 
 ```bash
-make build
+just build
 ```
 
 Build the application for development
 
 ```bash
-make build/dev
+just build-dev
 ```
 
 Live reload the application (with Air)
 
 ```bash
-make watch
+just watch
 ```
 
 Clean up binary from the last build:
 
 ```bash
-make clean
+just clean
 ```
 
 ### DB Migrations
@@ -91,31 +91,31 @@ make clean
 Create a new migration file
 
 ```bash
-make migrate/new name={name}
+just migrate-new name
 ```
 
 Apply all migrations
 
 ```bash
-make migrate/up
+just migrate-up
 ```
 
 Rollback the last migration
 
 ```bash
-make migrate/down
+just migrate-down
 ```
 
 Migrate to a specific version
 
 ```bash
-make migrate/force version={version}
+just migrate-force version
 ```
 
 Show the current migration version
 
 ```bash
-make migrate/version
+just migrate-version
 ```
 
 ### Quality Control
@@ -123,29 +123,29 @@ make migrate/version
 Audit the application for vulnerabilities, code quality, and dependency issues
 
 ```bash
-make audit
+just audit
 ```
 
 Run all tests, including DB integration tests (made with testcontainers)
 
 ```bash
-make test
+just test
 ```
 
 Run all tests and display coverage
 
 ```bash
-make test/cover
+just test-cover
 ```
 
 List direct dependencies that have upgrades available
 
 ```bash
-make upgradeable
+just upgradeable
 ```
 
 Tidy module dependencies and format .go files
 
 ```bash
-make tidy
+just tidy
 ```
