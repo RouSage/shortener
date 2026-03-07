@@ -42,6 +42,16 @@ test-cover:
     go test -v -race -coverprofile=/tmp/coverage.out ./...
     go tool cover -html=/tmp/coverage.out
 
+# run the application services in docker
+[group('dev')]
+docker-up:
+    docker compose up -d db valkey jaeger
+
+# stop the application services in docker
+[group('dev')]
+docker-down:
+    docker compose down
+
 # tidy modfiles and format .go files
 [group('dev')]
 tidy:

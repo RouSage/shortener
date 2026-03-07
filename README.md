@@ -49,7 +49,9 @@ cp .env.example .env
 Run the required services in Docker
 
 ```bash
-docker compose up -d db valkey
+docker compose up -d db valkey jaeger
+# or
+just docker-up
 ```
 
 Run the application
