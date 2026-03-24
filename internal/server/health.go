@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type HealthResponse struct {
@@ -24,7 +24,7 @@ type HealthResponse struct {
 //	@Success		200	{object}	HealthResponse
 //	@Failure		503	{object}	HealthResponse
 //	@Router			/v1/health [get]
-func (s *Server) healthHandler(c echo.Context) error {
+func (s *Server) healthHandler(c *echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -44,7 +44,7 @@ func (s *Server) healthHandler(c echo.Context) error {
 	})
 }
 
-func (s *Server) healthMetricsHandler(c echo.Context) error {
+func (s *Server) healthMetricsHandler(c *echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 

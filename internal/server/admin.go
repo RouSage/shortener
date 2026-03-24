@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/auth0/go-auth0/v2/management/core"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/repository"
 	"go.opentelemetry.io/otel/attribute"
@@ -40,7 +40,7 @@ type PaginatedURLs struct {
 //	@Failure		500			{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/urls [get]
-func (s *Server) getURLs(c echo.Context) error {
+func (s *Server) getURLs(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.GetURLs")
 	defer span.End()
 
@@ -113,7 +113,7 @@ type DeleteURLParams struct {
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/urls/{code} [delete]
-func (s *Server) deleteURLHandler(c echo.Context) error {
+func (s *Server) deleteURLHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteURLHandler")
 	defer span.End()
 
@@ -124,6 +124,8 @@ func (s *Server) deleteURLHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
@@ -171,7 +173,7 @@ type DeleteUserURLsResponse struct {
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/urls/user/{userId} [delete]
-func (s *Server) deleteUserURLsHandler(c echo.Context) error {
+func (s *Server) deleteUserURLsHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.DeleteUserURLsHandler")
 	defer span.End()
 
@@ -182,6 +184,8 @@ func (s *Server) deleteUserURLsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
@@ -230,7 +234,7 @@ type BlockUserParams struct {
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/users/block/{userId} [post]
-func (s *Server) blockUserHandler(c echo.Context) error {
+func (s *Server) blockUserHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.BlockUserHandler")
 	defer span.End()
 
@@ -241,6 +245,8 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 
@@ -274,7 +280,7 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 			span.RecordError(apiErr.Unwrap())
 
 			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to block the user in auth0")
-			return echo.NewHTTPError(apiErr.StatusCode)
+			return echo.NewHTTPError(apiErr.StatusCode, "")
 		}
 
 		span.RecordError(err)
@@ -321,7 +327,7 @@ func (s *Server) blockUserHandler(c echo.Context) error {
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/users/unblock/{userId} [post]
-func (s *Server) unblockUserHandler(c echo.Context) error {
+func (s *Server) unblockUserHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.UnblockUserHandler")
 	defer span.End()
 
@@ -332,6 +338,8 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
@@ -377,7 +385,7 @@ func (s *Server) unblockUserHandler(c echo.Context) error {
 			span.RecordError(apiErr.Unwrap())
 
 			s.logger.Error().Err(apiErr.Unwrap()).Str("userId", params.UserID).Msg("failed to unblock the user in auth")
-			return echo.NewHTTPError(apiErr.StatusCode)
+			return echo.NewHTTPError(apiErr.StatusCode, "")
 		}
 
 		span.RecordError(err)
@@ -420,7 +428,7 @@ type PaginatedUserBlocks struct {
 //	@Failure		500			{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/admin/users/blocks [get]
-func (s *Server) getUserBlocks(c echo.Context) error {
+func (s *Server) getUserBlocks(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "admin.GetUserBlocks")
 	defer span.End()
 

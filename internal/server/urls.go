@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/generator"
@@ -34,7 +34,7 @@ type CreateShortUrlDTO struct {
 //	@Failure		500		{object}	HTTPError				"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls [post]
-func (s *Server) createShortURLHandler(c echo.Context) error {
+func (s *Server) createShortURLHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "urls.CreateShortURLHandler")
 	defer span.End()
 
@@ -46,6 +46,8 @@ func (s *Server) createShortURLHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(dto); err != nil {
+		span.SetStatus(codes.Error, "invalid user input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("url", dto.URL))
@@ -163,7 +165,7 @@ type GetLongUrlResponse struct {
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls/{code} [get]
-func (s *Server) getLongUrlHandler(c echo.Context) error {
+func (s *Server) getLongUrlHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "urls.GetLongUrlHandler")
 	defer span.End()
 
@@ -239,7 +241,7 @@ type PaginatedUserURLs struct {
 //	@Failure		500			{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls [get]
-func (s *Server) getUserUrls(c echo.Context) error {
+func (s *Server) getUserUrls(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "urls.GetUserUrls")
 	defer span.End()
 
@@ -306,7 +308,7 @@ type DeleteShortUrlParams struct {
 //	@Failure		500		{object}	HTTPError			"Internal server error"
 //	@Security		BearerAuth
 //	@Router			/v1/urls/{code} [delete]
-func (s *Server) deletShortUrlHandler(c echo.Context) error {
+func (s *Server) deletShortUrlHandler(c *echo.Context) error {
 	ctx, span := tracer.Start(c.Request().Context(), "urls.DeleteShortUrlHandler")
 	defer span.End()
 
@@ -317,6 +319,8 @@ func (s *Server) deletShortUrlHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("code", params.Code))

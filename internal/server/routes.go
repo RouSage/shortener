@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echootel "github.com/labstack/echo-opentelemetry"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/otel"
-	echoSwagger "github.com/swaggo/echo-swagger"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	echoSwagger "github.com/swaggo/echo-swagger/v2"
 	"golang.org/x/time/rate"
 
 	_ "github.com/rousage/shortener/docs"
@@ -37,7 +37,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
 
-	e.Use(otelecho.Middleware(otel.ServiceName.Value.AsString()))
+	e.Use(echootel.NewMiddleware(otel.ServiceName.Value.AsString()))
 	e.Use(middleware.RequestID())
 
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -53,10 +53,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 		LogReferer:       true,
 		LogUserAgent:     true,
 		LogStatus:        true,
-		LogError:         true,
 		LogContentLength: true,
 		LogResponseSize:  true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 			logEvent := s.logger.Info()
 			if v.Error != nil {
 				logEvent = s.logger.Error()
@@ -89,14 +88,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 			return nil
 		},
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c *echo.Context) bool {
 			path := c.Request().URL.Path
 			return path == "/health" || path == "/health/metrics"
 		},
 	}))
 
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
-		Rate:      rate.Limit(s.cfg.Server.LimiterRPS),
+		Rate:      float64(rate.Limit(s.cfg.Server.LimiterRPS)),
 		Burst:     s.cfg.Server.LimiterBurst,
 		ExpiresIn: 3 * time.Minute,
 	})))
@@ -113,7 +112,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
 
-	e.GET("/*", echoSwagger.EchoWrapHandler(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
+	e.GET("/*", echoSwagger.EchoWrapHandlerV3(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 
 	v1 := e.Group("/v1", authMw.Authenticate)
 	v1.GET("/health", s.healthHandler)

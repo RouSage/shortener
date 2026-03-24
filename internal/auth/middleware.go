@@ -9,7 +9,7 @@ import (
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
@@ -54,7 +54,7 @@ func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 		m.logger.Fatal().Err(err).Msg("Failed to set up the jwt validator")
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx, span := tracer.Start(c.Request().Context(), "auth.Authenticate")
 		defer span.End()
 
@@ -85,7 +85,7 @@ func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func (m *Middleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		_, span := tracer.Start(c.Request().Context(), "auth.RequireAuthentication")
 		defer span.End()
 
@@ -101,7 +101,7 @@ func (m *Middleware) RequireAuthentication(next echo.HandlerFunc) echo.HandlerFu
 
 func (m *Middleware) RequirePermission(permission permission) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			_, span := tracer.Start(c.Request().Context(), "auth.RequirePermission")
 			defer span.End()
 
