@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/appvalidator"
 )
 
@@ -18,7 +18,7 @@ type HTTPValidationError struct {
 	Errors appvalidator.ValidationError `json:"errors" example:"{\"field\":\"field error message\"}"`
 }
 
-func (s *Server) failedValidationError(c echo.Context, err error) error {
+func (s *Server) failedValidationError(c *echo.Context, err error) error {
 	if appValidator, ok := c.Echo().Validator.(*appvalidator.AppValidator); ok {
 		validationErrors := appValidator.FormatErrors(err)
 

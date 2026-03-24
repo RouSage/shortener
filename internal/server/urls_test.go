@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/cache"
@@ -160,8 +160,8 @@ func TestCreateShortURLHandler_CustomShortCode(t *testing.T) {
 
 			// Assertions
 			err = s.createShortURLHandler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -204,13 +204,12 @@ func TestGetLongUrlHandler(t *testing.T) {
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/urls/:code")
-			c.SetParamNames("code")
-			c.SetParamValues(tt.code)
+			c.SetPathValues(echo.PathValues{{Name: "code", Value: tt.code}})
 
 			// Assertions
 			err := s.getLongUrlHandler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -253,8 +252,7 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 			res := httptest.NewRecorder()
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/urls/:code")
-			c.SetParamNames("code")
-			c.SetParamValues(tt.code)
+			c.SetPathValues(echo.PathValues{{Name: "code", Value: tt.code}})
 
 			// Assertions
 			actualCache, err := s.cache.GetLongUrl(c.Request().Context(), tt.code)
@@ -334,8 +332,8 @@ func TestGetUserUrlsHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -383,8 +381,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/urls/:code")
-			c.SetParamNames("code")
-			c.SetParamValues(tt.code)
+			c.SetPathValues(echo.PathValues{{Name: "code", Value: tt.code}})
 
 			if tt.userID != "" {
 				claims := &validator.ValidatedClaims{
@@ -402,8 +399,8 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)

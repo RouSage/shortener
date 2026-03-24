@@ -12,7 +12,7 @@ import (
 	"github.com/auth0/go-auth0/v2/management"
 	"github.com/auth0/go-auth0/v2/management/core"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/repository"
 	"github.com/stretchr/testify/assert"
@@ -105,8 +105,9 @@ func TestGetURLsHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -150,8 +151,7 @@ func TestDeleteURLHandler(t *testing.T) {
 
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/admin/urls/:code")
-			c.SetParamNames("code")
-			c.SetParamValues(tt.code)
+			c.SetPathValues(echo.PathValues{{Name: "code", Value: tt.code}})
 
 			claims := &validator.ValidatedClaims{
 				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
@@ -166,8 +166,8 @@ func TestDeleteURLHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -225,8 +225,7 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/admin/urls/user/:userId")
-			c.SetParamNames("userId")
-			c.SetParamValues(tt.userId)
+			c.SetPathValues(echo.PathValues{{Name: "userId", Value: tt.userId}})
 
 			claims := &validator.ValidatedClaims{
 				RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
@@ -241,8 +240,8 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -397,8 +396,7 @@ func TestBlockUserHandler(t *testing.T) {
 
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/admin/users/block/:userId")
-			c.SetParamNames("userId")
-			c.SetParamValues(tt.userID)
+			c.SetPathValues(echo.PathValues{{Name: "userId", Value: tt.userID}})
 
 			// Setup auth claims
 			claims := &validator.ValidatedClaims{
@@ -414,8 +412,8 @@ func TestBlockUserHandler(t *testing.T) {
 
 			// Assertions
 			err = handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -557,8 +555,7 @@ func TestUnblockUserHandler(t *testing.T) {
 
 			c := e.NewContext(req, res)
 			c.SetPath("/v1/admin/users/unblock/:userId")
-			c.SetParamNames("userId")
-			c.SetParamValues(tt.userID)
+			c.SetPathValues(echo.PathValues{{Name: "userId", Value: tt.userID}})
 
 			// Setup auth claims
 			claims := &validator.ValidatedClaims{
@@ -574,8 +571,8 @@ func TestUnblockUserHandler(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -652,8 +649,8 @@ func TestGetUserBlocks(t *testing.T) {
 
 			// Assertions
 			err := handler(c)
-			if he, ok := err.(*echo.HTTPError); ok {
-				assert.Equal(t, tt.expectedStatus, he.Code)
+			if sc, ok := err.(echo.HTTPStatusCoder); ok {
+				assert.Equal(t, tt.expectedStatus, sc.StatusCode())
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStatus, res.Code)
@@ -685,8 +682,7 @@ func blockUser(t *testing.T, s *Server, e *echo.Echo, userID string, payload Blo
 
 	c := e.NewContext(req, res)
 	c.SetPath("/v1/admin/users/block/:userId")
-	c.SetParamNames("userId")
-	c.SetParamValues(userID)
+	c.SetPathValues(echo.PathValues{{Name: "userId", Value: userID}})
 	c.Set(string(auth.ClaimsContextKey), claims)
 
 	handler := authMw.RequireAuthentication(authMw.RequirePermission(auth.UserBlock)(s.blockUserHandler))

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -50,7 +50,7 @@ func (c CustomClaims) HasPermission(expectedPermission permission) bool {
 	return slices.Contains(c.Permissions, string(expectedPermission))
 }
 
-func GetUserID(c echo.Context) *string {
+func GetUserID(c *echo.Context) *string {
 	_, span := tracer.Start(c.Request().Context(), "auth.GetUserID")
 	defer span.End()
 
@@ -64,11 +64,11 @@ func GetUserID(c echo.Context) *string {
 	return &claims.RegisteredClaims.Subject
 }
 
-func setClaimsToContext(c echo.Context, claims any) {
+func setClaimsToContext(c *echo.Context, claims any) {
 	c.Set(string(ClaimsContextKey), claims)
 }
 
-func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {
+func getClaimsFromContext(c *echo.Context) *validator.ValidatedClaims {
 	claims, ok := c.Get(string(ClaimsContextKey)).(*validator.ValidatedClaims)
 	if !ok || claims == nil {
 		return nil
@@ -77,7 +77,7 @@ func getClaimsFromContext(c echo.Context) *validator.ValidatedClaims {
 	return claims
 }
 
-func getCustomClaimsFromContext(c echo.Context) *CustomClaims {
+func getCustomClaimsFromContext(c *echo.Context) *CustomClaims {
 	claims := getClaimsFromContext(c)
 	if claims == nil {
 		return nil

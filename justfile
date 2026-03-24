@@ -24,7 +24,7 @@ audit:
     @echo "Checking module dependencies..."
     go mod tidy -diff
     go mod verify
-    test -z "$(shell gofmt -l .)"
+    test -z "$(gofmt -l .)"
     @echo "Vetting code..."
     go vet ./...
     golangci-lint run ./...
