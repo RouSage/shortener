@@ -46,6 +46,8 @@ func (s *Server) createShortURLHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(dto); err != nil {
+		span.SetStatus(codes.Error, "invalid user input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("url", dto.URL))
@@ -317,6 +319,8 @@ func (s *Server) deletShortUrlHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("code", params.Code))

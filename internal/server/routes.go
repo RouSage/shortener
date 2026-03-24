@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"time"
 
+	echootel "github.com/labstack/echo-opentelemetry"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/rousage/shortener/internal/appvalidator"
 	"github.com/rousage/shortener/internal/auth"
 	"github.com/rousage/shortener/internal/otel"
 	echoSwagger "github.com/swaggo/echo-swagger/v2"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/time/rate"
 
 	_ "github.com/rousage/shortener/docs"
@@ -37,7 +37,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
 	e.Validator = appvalidator.New()
 
-	e.Use(echo.WrapMiddleware(otelhttp.NewMiddleware(otel.ServiceName.Value.AsString())))
+	e.Use(echootel.NewMiddleware(otel.ServiceName.Value.AsString()))
 	e.Use(middleware.RequestID())
 
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{

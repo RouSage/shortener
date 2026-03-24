@@ -124,6 +124,8 @@ func (s *Server) deleteURLHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("code", params.Code))
@@ -182,6 +184,8 @@ func (s *Server) deleteUserURLsHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
@@ -241,6 +245,8 @@ func (s *Server) blockUserHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 
@@ -332,6 +338,8 @@ func (s *Server) unblockUserHandler(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(params); err != nil {
+		span.SetStatus(codes.Error, "invalid user (admin) input")
+		span.RecordError(err)
 		return s.failedValidationError(c, err)
 	}
 	span.SetAttributes(attribute.String("userId", params.UserID))
