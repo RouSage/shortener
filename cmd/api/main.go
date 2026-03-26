@@ -24,7 +24,7 @@ func gracefulShutdown(ctx context.Context, logger *slog.Logger, apiServer *http.
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	logger.Info("shutting down gracefully, prect Ctrl+C again to force")
+	logger.Info("shutting down gracefully, press Ctrl+C again to force")
 	stop() // Allow Ctrl+C to force shutdown
 
 	// The context is used to inform the server it has 5 seconds to finish
@@ -32,7 +32,7 @@ func gracefulShutdown(ctx context.Context, logger *slog.Logger, apiServer *http.
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := apiServer.Shutdown(ctx); err != nil {
-		logger.Debug("server force to shutdown with error", "error", err)
+		logger.Debug("server forced to shutdown with error", "error", err)
 	}
 
 	logger.Info("server exiting")
@@ -76,5 +76,5 @@ func main() {
 
 	// Wait for the graceful shutdown to complete
 	<-done
-	logger.Info("gracefult shutdown complete")
+	logger.Info("graceful shutdown complete")
 }
