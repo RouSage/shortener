@@ -5,6 +5,8 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -14,18 +16,18 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/config"
-	"github.com/rs/zerolog"
 )
 
 //go:embed migrations
 var migrations embed.FS
 
-func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
+func Connect(logger *slog.Logger, cfg config.Database) *pgxpool.Pool {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable&search_path=%s", cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Schema)
 
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to parse connection string")
+		logger.Error("failed to parse connection string", "error", err)
+		os.Exit(1)
 	}
 	config.MaxConns = 30
 	config.MinIdleConns = 5
@@ -34,22 +36,26 @@ func Connect(logger zerolog.Logger, cfg config.Database) *pgxpool.Pool {
 
 	conn, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create DB pool")
+		logger.Error("failed to create DB pool", "error", err)
+		os.Exit(1)
 	}
 
 	err = migrateDB(connString)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to migrate DB")
+		logger.Error("failed to migrate DB")
+		os.Exit(1)
 	}
 
 	err = conn.Ping(context.Background())
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to ping DB")
+		logger.Error("failed to ping DB", "error", err)
+		os.Exit(1)
 	}
 
 	err = otelpgx.RecordStats(conn, otelpgx.WithMinimumReadDBStatsInterval(5*time.Second))
 	if err != nil {
-		logger.Fatal().Err(err).Msg("unable to record database stats")
+		logger.Error("unable to record database stats", "error", err)
+		os.Exit(1)
 	}
 
 	return conn

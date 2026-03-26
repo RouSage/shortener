@@ -4,7 +4,7 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/rs/zerolog/log"
+	"log/slog"
 )
 
 type App struct {
@@ -20,7 +20,7 @@ const (
 
 var allowedEnvs = []string{EnvLocal, EnvDevelopment, EnvProduction}
 
-func loadAppConfig() (App, error) {
+func loadAppConfig(logger *slog.Logger) (App, error) {
 	env, err := getEnv("APP_ENV")
 	if err != nil {
 		return App{}, err
@@ -33,7 +33,7 @@ func loadAppConfig() (App, error) {
 	if err != nil {
 		// default to 0 if the env var is not set
 		// it's ok to not set this value, the generator package will use a default value
-		log.Warn().Msg("SHORT_URL_LENGTH environment variables is not set, setting to 0")
+		logger.Warn("SHORT_URL_LENGTH environment variables is not set, setting to 0")
 		shortUrlLength = 0
 	}
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -94,7 +95,7 @@ func (s *Server) createShortURLHandler(c *echo.Context) error {
 				})
 			}
 
-			s.logger.Error().Err(err).Msg("failed to create custom short url")
+			c.Logger().Error("failed to create custom short url", "error", err)
 			return echo.ErrInternalServerError
 		}
 
@@ -121,7 +122,7 @@ func (s *Server) createShortURLHandler(c *echo.Context) error {
 
 		if s.rep.IsDuplicateKeyError(err) {
 			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
-			s.logger.Warn().Err(err).Int("attempt", attempt+1).Msg("Short URL collision detected, retrying")
+			c.Logger().Warn("Short URL collision detected, retrying", "error", err, slog.Int("attempt", attempt+1))
 			continue
 		} else if s.rep.IsCheckConstraintError(err) {
 			return c.JSON(http.StatusConflict, &HTTPValidationError{
@@ -136,7 +137,7 @@ func (s *Server) createShortURLHandler(c *echo.Context) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to generate short url")
 		span.RecordError(err)
-		s.logger.Error().Err(err).Int("retries", maxRetries).Msg("failed to generate short url")
+		c.Logger().Error("failed to generate short url", "error", err, slog.Int("retries", maxRetries))
 		return echo.ErrInternalServerError
 	}
 
@@ -183,7 +184,7 @@ func (s *Server) getLongUrlHandler(c *echo.Context) error {
 	longUrl, err := s.cache.GetLongUrl(ctx, params.Code)
 	if err != nil {
 		span.AddEvent("failed to get long url from cache")
-		s.logger.Warn().Err(err).Str("code", params.Code).Msg("failed to get long url from cache")
+		c.Logger().Warn("failed to get long url from cache", "error", err, slog.String("code", params.Code))
 	}
 	if longUrl != "" {
 		return c.JSON(http.StatusOK, map[string]string{
@@ -197,17 +198,17 @@ func (s *Server) getLongUrlHandler(c *echo.Context) error {
 		span.RecordError(err)
 
 		if s.rep.IsNotFoundError(err) {
-			s.logger.Error().Err(err).Str("code", params.Code).Msg("long url not found")
+			c.Logger().Error("long url not found", "error", err, slog.String("code", params.Code))
 			return echo.ErrNotFound
 		}
 
-		s.logger.Error().Err(err).Str("code", params.Code).Msg("failed to get long url")
+		c.Logger().Error("failed to get long url", "error", err, slog.String("code", params.Code))
 		return echo.ErrInternalServerError
 	}
 
 	if key, err := s.cache.SetLongUrl(ctx, params.Code, longUrl); err != nil {
 		span.AddEvent("failed to cache long url", trace.WithAttributes(attribute.String("key", key)))
-		s.logger.Warn().Err(err).Str("code", params.Code).Str("key", key).Msg("failed to cache long url ")
+		c.Logger().Warn("failed to cache long url", "error", err, slog.String("code", params.Code), slog.String("key", key))
 	}
 
 	return c.JSON(http.StatusOK, &GetLongUrlResponse{
@@ -332,18 +333,18 @@ func (s *Server) deletShortUrlHandler(c *echo.Context) error {
 		span.SetStatus(codes.Error, "failed to delete short url")
 		span.RecordError(err)
 
-		s.logger.Error().Err(err).Str("code", params.Code).Msg("failed to delete short url")
+		c.Logger().Error("failed to delete short url", "error", err, slog.String("code", params.Code))
 		return echo.ErrInternalServerError
 	}
 	if rowsAffected == 0 {
 		span.AddEvent("short url not found", trace.WithAttributes(attribute.String("code", params.Code)))
-		s.logger.Warn().Str("code", params.Code).Msg("short url not found")
+		c.Logger().Warn("short url not found", slog.String("code", params.Code))
 		return echo.ErrNotFound
 	}
 
 	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
-		s.logger.Warn().Err(err).Str("code", params.Code).Int64("removedKeys", removedKeys).Msg("failed to delete long url from cache")
+		c.Logger().Warn("failed to delete long url from cache", "error", err, slog.String("code", params.Code), slog.Int64("removedKeys", removedKeys))
 	}
 
 	return c.NoContent(http.StatusNoContent)

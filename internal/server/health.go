@@ -31,7 +31,7 @@ func (s *Server) healthHandler(c *echo.Context) error {
 	// Quick database ping
 	err := s.db.Ping(ctx)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("database health check failed")
+		c.Logger().Error("database health check failed", "error", err)
 		return c.JSON(http.StatusServiceUnavailable, &HealthResponse{
 			Status:      "unavailable",
 			Environment: s.cfg.App.Env,
@@ -53,7 +53,7 @@ func (s *Server) healthMetricsHandler(c *echo.Context) error {
 	// Ping the database
 	err := s.db.Ping(ctx)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("database health check failed")
+		c.Logger().Error("database health check failed", "error", err)
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %s", err)
 		return c.JSON(http.StatusServiceUnavailable, stats)

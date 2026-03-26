@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -11,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/testhelpers"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -45,7 +45,7 @@ func (suite *UrlTestSuite) TearDownSuite() {
 
 func (suite *UrlTestSuite) SetupTest() {
 	// Connect to the DB before each test
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	db := database.Connect(logger, suite.container.DatabaseConfig)
 	queries := New(db)
 

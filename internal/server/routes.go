@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -33,8 +35,9 @@ import (
 // @in							header
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token
-func (s *Server) RegisterRoutes() http.Handler {
+func (s *Server) RegisterRoutes(logger *slog.Logger) http.Handler {
 	e := echo.New()
+	e.Logger = logger
 	e.Validator = appvalidator.New()
 
 	e.Use(echootel.NewMiddleware(otel.ServiceName.Value.AsString()))
@@ -56,34 +59,27 @@ func (s *Server) RegisterRoutes() http.Handler {
 		LogContentLength: true,
 		LogResponseSize:  true,
 		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
-			logEvent := s.logger.Info()
-			if v.Error != nil {
-				logEvent = s.logger.Error()
+			attrs := []slog.Attr{
+				slog.Int64("latency", v.Latency.Milliseconds()),
+				slog.String("protocol", v.Protocol),
+				slog.String("remote_ip", v.RemoteIP),
+				slog.String("host", v.Host),
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.String("route", v.RoutePath),
+				slog.String("request_id", v.RequestID),
+				slog.String("referer", v.Referer),
+				slog.String("user_agent", v.UserAgent),
+				slog.Int("status", v.Status),
+				slog.String("content_length", v.ContentLength),
+				slog.Int64("response_size", v.ResponseSize),
 			}
-
-			logEvent.
-				Int64("latency", v.Latency.Milliseconds()).
-				Str("protocol", v.Protocol).
-				Str("remote_ip", v.RemoteIP).
-				Str("host", v.Host).
-				Str("method", v.Method).
-				Str("uri", v.URI).
-				Str("route", v.RoutePath).
-				Str("request_id", v.RequestID).
-				Str("referer", v.Referer).
-				Str("user_agent", v.UserAgent).
-				Int("status", v.Status).
-				Str("uri", v.URI).
-				Int("status", v.Status).
-				Str("content_length", v.ContentLength).
-				Int64("response_size", v.ResponseSize)
-
 			if v.Error != nil {
-				logEvent.
-					Err(v.Error).
-					Msg("")
+				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
+					append(attrs, slog.String("error", v.Error.Error()))...,
+				)
 			} else {
-				logEvent.Msg("request")
+				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST", attrs...)
 			}
 
 			return nil
@@ -110,7 +106,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	e.GET("/*", echoSwagger.EchoWrapHandlerV3(echoSwagger.PersistAuthorization(true), echoSwagger.SyntaxHighlight(true)))
 

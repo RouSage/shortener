@@ -2,11 +2,11 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -18,15 +18,16 @@ type Config struct {
 	Otel     Otel
 }
 
-func Load() (*Config, error) {
+func Load(logger *slog.Logger) (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to load environment variables")
+		logger.Error("failed to load environment variables", "error", err)
+		os.Exit(1)
 	}
 
 	config := &Config{}
 
-	config.App, err = loadAppConfig()
+	config.App, err = loadAppConfig(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app config: %w", err)
 	}
@@ -46,12 +47,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load cache config: %w", err)
 	}
 
-	config.Server, err = loadServerConfig()
+	config.Server, err = loadServerConfig(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load server config: %w", err)
 	}
 
-	config.Otel, err = loadOtelConfig()
+	config.Otel, err = loadOtelConfig(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load otel config: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
@@ -11,7 +12,6 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/config"
-	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -21,40 +21,40 @@ import (
 var tracer = otel.Tracer("github.com/rousage/shortener/internal/auth")
 
 type Middleware struct {
-	cfg    config.Auth
-	logger zerolog.Logger
+	cfg config.Auth
 }
 
-func NewMiddleware(cfg config.Auth, logger zerolog.Logger) *Middleware {
-	return &Middleware{cfg: cfg, logger: logger}
+func NewMiddleware(cfg config.Auth) *Middleware {
+	return &Middleware{cfg: cfg}
 }
 
 // Authenticate is a middleware that will check the validity of the JWT if it is present
 func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
-	issuerURL, err := url.Parse(fmt.Sprintf("https://%s/", m.cfg.Auth0Domain))
-	if err != nil {
-		m.logger.Fatal().Err(err).Msg("Failed to parse the issuer url")
-	}
-
-	provider := jwks.NewCachingProvider(issuerURL, 5*time.Minute)
-
-	jwtValidator, err := validator.New(
-		provider.KeyFunc,
-		validator.RS256,
-		issuerURL.String(),
-		[]string{m.cfg.Auth0Audience},
-		validator.WithCustomClaims(
-			func() validator.CustomClaims {
-				return &CustomClaims{}
-			},
-		),
-		validator.WithAllowedClockSkew(time.Minute),
-	)
-	if err != nil {
-		m.logger.Fatal().Err(err).Msg("Failed to set up the jwt validator")
-	}
-
 	return func(c *echo.Context) error {
+		issuerURL, err := url.Parse(fmt.Sprintf("https://%s/", m.cfg.Auth0Domain))
+		if err != nil {
+			c.Logger().Error("failed to parse the issuer URL", "error", err)
+			os.Exit(1)
+		}
+
+		provider := jwks.NewCachingProvider(issuerURL, 5*time.Minute)
+
+		jwtValidator, err := validator.New(
+			provider.KeyFunc,
+			validator.RS256,
+			issuerURL.String(),
+			[]string{m.cfg.Auth0Audience},
+			validator.WithCustomClaims(
+				func() validator.CustomClaims {
+					return &CustomClaims{}
+				},
+			),
+			validator.WithAllowedClockSkew(time.Minute),
+		)
+		if err != nil {
+			c.Logger().Error("faile to set up the jwt validator", "error", err)
+			os.Exit(1)
+		}
 		ctx, span := tracer.Start(c.Request().Context(), "auth.Authenticate")
 		defer span.End()
 

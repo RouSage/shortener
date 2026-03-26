@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/repository"
-	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 )
 
@@ -28,7 +28,6 @@ type AuthManager interface {
 
 type Server struct {
 	cfg            *config.Config
-	logger         zerolog.Logger
 	db             *pgxpool.Pool
 	rep            *repository.Queries
 	cache          *cache.Cache
@@ -36,19 +35,17 @@ type Server struct {
 }
 
 func New(cfg *config.Config) *http.Server {
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-	zerolog.TimestampFieldName = "timestamp"
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	logLevel := slog.LevelDebug
 	if cfg.App.Env == config.EnvProduction {
-		logger = logger.Level(zerolog.InfoLevel)
+		logLevel = slog.LevelInfo
 	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	db := database.Connect(logger, cfg.Database)
 	cacheClient := cache.Connect(logger, cfg.Cache)
 
 	srv := &Server{
 		cfg:            cfg,
-		logger:         logger,
 		db:             db,
 		rep:            repository.New(db),
 		cache:          cache.New(cacheClient),
@@ -58,13 +55,13 @@ func New(cfg *config.Config) *http.Server {
 	// Declare Server config
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", srv.cfg.Server.Port),
-		Handler:      srv.RegisterRoutes(),
+		Handler:      srv.RegisterRoutes(logger),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 20 * time.Second,
 	}
 
-	srv.logger.Info().Msgf("server started on port %d", srv.cfg.Server.Port)
+	logger.Info("server started on port", slog.Int("port", srv.cfg.Server.Port))
 
 	return server
 }
