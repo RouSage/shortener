@@ -10,6 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"log/slog"
+
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/labstack/echo/v5"
 	"github.com/rousage/shortener/internal/appvalidator"
@@ -19,7 +21,6 @@ import (
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/repository"
 	"github.com/rousage/shortener/internal/testhelpers"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -275,7 +276,7 @@ func TestGetLongUrlHandler_Cache(t *testing.T) {
 
 func TestGetUserUrlsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	var (
 		userID_1 = "user-id"
@@ -352,7 +353,7 @@ func TestGetUserUrlsHandler(t *testing.T) {
 
 func TestDeleteShortUrlHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	userID := "user-id"
 	createdUrl := createShortUrl(t, s, e, "https://example.com", userID, "")
@@ -417,7 +418,7 @@ func TestDeleteShortUrlHandler(t *testing.T) {
 
 func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	ctx := context.Background()
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
 	require.NoError(t, err, "could not start postgres container")
@@ -438,10 +439,10 @@ func setupTestServer(t *testing.T) (*Server, *echo.Echo, func()) {
 	}
 
 	e := echo.New()
+	e.Logger = logger
 	e.Validator = appvalidator.New()
 
 	s := &Server{
-		logger:         logger,
 		cfg:            cfg,
 		db:             db,
 		rep:            repository.New(db),

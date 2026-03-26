@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/rousage/shortener/internal/testhelpers"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -37,7 +37,7 @@ func (suite *UrlTestSuite) TearDownSuite() {
 
 func (suite *UrlTestSuite) SetupTest() {
 	// Connect to the cache before each test
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	client := Connect(logger, suite.container.CacheConfig)
 	cache := New(client)
 

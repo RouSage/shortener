@@ -45,7 +45,7 @@ func (m *mockAuthManager) UnblockUser(ctx context.Context, userID string) error 
 
 func TestGetURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	for i := range 5 {
 		createShortUrl(t, s, e, fmt.Sprintf("https://example-%d.com", i), "", "")
@@ -125,7 +125,7 @@ func TestGetURLsHandler(t *testing.T) {
 
 func TestDeleteURLHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	createdUrl := createShortUrl(t, s, e, "https://example.com", "", "")
 	_, err := s.cache.SetLongUrl(context.Background(), createdUrl.ID, createdUrl.LongUrl)
@@ -184,7 +184,7 @@ func TestDeleteURLHandler(t *testing.T) {
 
 func TestDeleteUserURLsHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	invalidUserID := "the-user-id-that-is-too-long-for-the-endpoint-that-validation-should-prevent"
 	// Populate DB and cache with some URLs
@@ -265,7 +265,7 @@ func TestDeleteUserURLsHandler(t *testing.T) {
 
 func TestBlockUserHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	var (
 		validUserID   = "auth0|507f1f77bcf86cd799439011"
@@ -442,7 +442,7 @@ func TestBlockUserHandler(t *testing.T) {
 
 func TestUnblockUserHandler(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	validUserID := "auth0|507f1f77bcf86cd799439011"
 	invalidUserID := "user-id-that-is-way-too-long-and-exceeds-the-maximum-length-of-fifty-characters"
@@ -597,7 +597,7 @@ func TestUnblockUserHandler(t *testing.T) {
 
 func TestGetUserBlocks(t *testing.T) {
 	s, e, cleanup := setupTestServer(t)
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 
 	// Setup mock to expect BlockUser calls for test data setup
 	mockAuth := &mockAuthManager{}
@@ -667,7 +667,7 @@ func TestGetUserBlocks(t *testing.T) {
 }
 
 func blockUser(t *testing.T, s *Server, e *echo.Echo, userID string, payload BlockUserDTO) repository.UserBlock {
-	authMw := auth.NewMiddleware(s.cfg.Auth, s.logger)
+	authMw := auth.NewMiddleware(s.cfg.Auth)
 	claims := &validator.ValidatedClaims{
 		RegisteredClaims: validator.RegisteredClaims{Subject: adminID},
 		CustomClaims:     &auth.CustomClaims{Permissions: []string{string(auth.UserBlock)}},

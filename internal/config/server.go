@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"log/slog"
 )
 
 const (
@@ -20,7 +20,7 @@ type Server struct {
 	LimiterBurst int
 }
 
-func loadServerConfig() (Server, error) {
+func loadServerConfig(logger *slog.Logger) (Server, error) {
 	port, err := getIntEnv("PORT")
 	if err != nil {
 		return Server{}, err
@@ -37,12 +37,12 @@ func loadServerConfig() (Server, error) {
 
 	rps, err := getIntEnv("LIMITER_RPS")
 	if err != nil {
-		log.Warn().Int("defaultRPS", defaultRPS).Msg("LIMITER_RPS environment variable is not set, setting to default")
+		logger.Warn("LIMITER_RPS environment variable is not set, setting to default", slog.Int("defaultRPS", defaultRPS))
 		rps = defaultRPS
 	}
 	burst, err := getIntEnv("LIMITER_BURST")
 	if err != nil {
-		log.Warn().Int("defaultBurst", defaultBurst).Msg("LIMITER_BURST environment variable is not set, setting to default")
+		logger.Warn("LIMITER_BURST environment variable is not set, setting to default", slog.Int("defaultBurst", defaultBurst))
 		burst = defaultBurst
 	}
 

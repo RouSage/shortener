@@ -3,10 +3,10 @@ package cache
 import (
 	"context"
 	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/rousage/shortener/internal/testhelpers"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -31,7 +31,7 @@ func (suite *CacheTestSuite) TearDownSuite() {
 }
 
 func (suite *CacheTestSuite) TestConnect() {
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cache := Connect(logger, suite.container.CacheConfig)
 	suite.NotNil(cache, "Connect() returned nil")
 }

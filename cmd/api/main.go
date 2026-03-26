@@ -4,19 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/otel"
 	"github.com/rousage/shortener/internal/server"
 )
 
-func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan bool) {
+func gracefulShutdown(ctx context.Context, logger *slog.Logger, apiServer *http.Server, done chan bool) {
 	// Create context that listens for the interrupt signal from the OS.
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -24,7 +24,7 @@ func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan boo
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	log.Info().Msg("shutting down gracefully, press Ctrl+C again to force")
+	logger.Info("shutting down gracefully, prect Ctrl+C again to force")
 	stop() // Allow Ctrl+C to force shutdown
 
 	// The context is used to inform the server it has 5 seconds to finish
@@ -32,10 +32,10 @@ func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan boo
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if err := apiServer.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown with error: %s", err)
+		logger.Debug("server force to shutdown with error", "error", err)
 	}
 
-	log.Info().Msg("Server exiting")
+	logger.Info("server exiting")
 
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
@@ -43,17 +43,20 @@ func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan boo
 
 func main() {
 	ctx := context.Background()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	cfg, err := config.Load()
+	cfg, err := config.Load(logger)
 	if err != nil {
-		log.Fatal().Err(err).Msg("could not load config")
+		logger.Error("could not load config", "error", err)
+		os.Exit(1)
 	}
 
 	srv := server.New(cfg)
 
 	otelShutdown, err := otel.SetupOTelSDK(ctx, cfg.Otel)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error setting up OpenTelemetry SDK")
+		logger.Error("error setting up OpenTelemetry SDK", "error", err)
+		os.Exit(1)
 	}
 	// Handle shutdown properly so nothing leaks
 	defer func() {
@@ -64,7 +67,7 @@ func main() {
 	done := make(chan bool, 1)
 
 	// Run graceful shutdown in a separate goroutine
-	go gracefulShutdown(ctx, srv, done)
+	go gracefulShutdown(ctx, logger, srv, done)
 
 	err = srv.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
@@ -73,5 +76,5 @@ func main() {
 
 	// Wait for the graceful shutdown to complete
 	<-done
-	log.Info().Msg("Graceful shutdown complete.")
+	logger.Info("gracefult shutdown complete")
 }

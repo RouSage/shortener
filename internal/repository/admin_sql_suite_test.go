@@ -3,13 +3,13 @@ package repository
 import (
 	"context"
 	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/testhelpers"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -59,7 +59,7 @@ func (suite *AdminTestSuite) SetupSuite() {
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
 	suite.Require().NoError(err, "could not start postgres container")
 
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	db := database.Connect(logger, pgContainer.DatabaseConfig)
 	queries := New(db)
 
@@ -88,7 +88,7 @@ func (suite *AdminTestSuite) TearDownSuite() {
 
 func (suite *AdminTestSuite) SetupTest() {
 	// Connect to the DB before each test
-	logger := zerolog.New(io.Discard)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	db := database.Connect(logger, suite.container.DatabaseConfig)
 	queries := New(db)
 

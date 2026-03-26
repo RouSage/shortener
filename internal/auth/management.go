@@ -2,12 +2,13 @@ package auth
 
 import (
 	"context"
+	"log/slog"
+	"os"
 
 	"github.com/auth0/go-auth0/v2/management"
 	"github.com/auth0/go-auth0/v2/management/client"
 	"github.com/auth0/go-auth0/v2/management/option"
 	"github.com/rousage/shortener/internal/config"
-	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -16,10 +17,11 @@ type Management struct {
 	client *client.Management
 }
 
-func NewManagement(logger zerolog.Logger, cfg config.Auth) *Management {
+func NewManagement(logger *slog.Logger, cfg config.Auth) *Management {
 	client, err := client.New(cfg.Auth0Domain, option.WithClientCredentials(context.Background(), cfg.Auth0ClientID, cfg.Auth0ClientSecret))
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create Auth0 management client")
+		logger.Error("failed to creacte Auth0 Management client", "error", err)
+		os.Exit(1)
 	}
 
 	return &Management{
