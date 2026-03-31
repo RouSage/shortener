@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/rousage/shortener/internal/config"
 	"go.opentelemetry.io/otel"
@@ -15,7 +16,7 @@ import (
 
 var ServiceName = semconv.ServiceNameKey.String("shortener")
 
-func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) error, error) {
+func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (func(context.Context) error, error) {
 	var shutdownFuncs []func(context.Context) error
 	var err error
 
@@ -40,8 +41,17 @@ func SetupOTelSDK(ctx context.Context, cfg config.Otel) (func(context.Context) e
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	res, err := resource.New(ctx, resource.WithAttributes(ServiceName))
-	if err != nil {
+	res, err := resource.New(ctx,
+		resource.WithTelemetrySDK(),
+		resource.WithProcess(),
+		resource.WithOS(),
+		resource.WithContainer(),
+		resource.WithHost(),
+		resource.WithAttributes(ServiceName),
+	)
+	if errors.Is(err, resource.ErrPartialResource) || errors.Is(err, resource.ErrSchemaURLConflict) {
+		logger.Warn("resource error", "error", err)
+	} else if err != nil {
 		handleErr(err)
 		return shutdown, err
 	}
