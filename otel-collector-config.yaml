@@ -1,0 +1,28 @@
+receivers:
+    otlp:
+        protocols:
+            grpc:
+                endpoint: otel-collector:4317
+            http:
+                endpoint: otel-collector:4318
+
+exporters:
+    debug:
+        verbosity: detailed
+
+extensions:
+    zpages:
+        endpoint: otel-collector:55679
+
+service:
+    extensions: [zpages]
+    pipelines:
+        traces:
+            receivers: [otlp]
+            exporters: [debug]
+        metrics:
+            receivers: [otlp]
+            exporters: [debug]
+        logs:
+            receivers: [otlp]
+            exporters: [debug]

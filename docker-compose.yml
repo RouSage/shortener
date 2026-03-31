@@ -72,9 +72,11 @@ services:
         container_name: otel-collector
         restart: unless-stopped
         ports:
-            - "4317:4317" # OTLP gRPC
-            - "4318:4318" # OTLP HTTP
-            - "55679:55679" # ZPages
+            - "4317:4317" # OTLP gRPC receiver
+            - "4318:4318" # OTLP HTTP receiver
+            - "55679:55679" # ZPages extension; see more here: https://opentelemetry.io/docs/collector/install/docker/#docker-compose
+        volumes:
+            - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
         networks:
             - app_network
 
