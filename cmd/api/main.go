@@ -53,7 +53,7 @@ func main() {
 
 	srv := server.New(cfg)
 
-	otelShutdown, err := otel.SetupOTelSDK(ctx, cfg.Otel)
+	otelShutdown, err := otel.SetupOTelSDK(ctx, logger, cfg.Otel)
 	if err != nil {
 		logger.Error("error setting up OpenTelemetry SDK", "error", err)
 		os.Exit(1)
