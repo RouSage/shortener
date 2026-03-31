@@ -67,17 +67,14 @@ services:
             start_period: 15s
         networks:
             - app_network
-    jaeger:
-        image: cr.jaegertracing.io/jaegertracing/jaeger:latest
-        container_name: jaeger
+    otel-collector:
+        image: otel/opentelemetry-collector:0.148.0
+        container_name: otel-collector
         restart: unless-stopped
-        environment:
-            COLLECTOR_OTLP_ENABLED: "true"
         ports:
-            - "16686:16686"
-            - "4317:4317"
-            - "4318:4318"
-            - "5778:5778"
+            - "4317:4317" # OTLP gRPC
+            - "4318:4318" # OTLP HTTP
+            - "55679:55679" # ZPages
         networks:
             - app_network
 

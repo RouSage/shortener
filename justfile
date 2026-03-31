@@ -45,7 +45,7 @@ test-cover:
 # run the application services in docker
 [group('dev')]
 docker-up:
-    docker compose up -d db valkey jaeger
+    docker compose up -d db valkey otel-collector
 
 # stop the application services in docker
 [group('dev')]

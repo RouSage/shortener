@@ -49,7 +49,7 @@ cp .env.example .env
 Run the required services in Docker
 
 ```bash
-docker compose up -d db valkey jaeger
+docker compose up -d db valkey otel-collector
 # or
 just docker-up
 ```
