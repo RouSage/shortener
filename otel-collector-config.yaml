@@ -11,11 +11,13 @@ exporters:
         verbosity: detailed
 
 extensions:
+    health_check:
+        endpoint: otel-collector:13133
     zpages:
         endpoint: otel-collector:55679
 
 service:
-    extensions: [zpages]
+    extensions: [health_check, zpages]
     pipelines:
         traces:
             receivers: [otlp]
