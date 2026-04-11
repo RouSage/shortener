@@ -120,6 +120,22 @@ Show the current migration version
 just migrate-version
 ```
 
+### Observability
+
+Traces, metrics, and logs are collected via an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) and exported to [Grafana Cloud](https://grafana.com/products/cloud/).
+
+Set the following variables in your `.env` before starting the collector:
+
+| Variable | Where to find it |
+|---|---|
+| `GRAFANA_CLOUD_OTLP_ENDPOINT` | Grafana Cloud → Connections → Add new connection → OpenTelemetry (OTLP) |
+| `GRAFANA_CLOUD_INSTANCE_ID` | Your numeric stack/instance ID on the same page |
+| `GRAFANA_CLOUD_API_KEY` | A Grafana Cloud API token with `MetricsPublisher`, `LogsPublisher`, and `TracesPublisher` scopes |
+
+The collector exposes:
+- **Health check** — `http://localhost:13133`
+- **zPages** (pipeline diagnostics) — `http://localhost:55679/debug/tracez`
+
 ### Quality Control
 
 Audit the application for vulnerabilities, code quality, and dependency issues
