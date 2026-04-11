@@ -73,7 +73,6 @@ services:
         restart: unless-stopped
         ports:
             - "4317:4317" # OTLP gRPC receiver
-            - "4318:4318" # OTLP HTTP receiver
             - "13133:13133" # health_check extension
             - "55679:55679" # ZPages extension; see more here: https://opentelemetry.io/docs/collector/install/docker/#docker-compose
         volumes:
