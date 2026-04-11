@@ -12,6 +12,21 @@ type Otel struct {
 }
 
 func loadOtelConfig(logger *slog.Logger) (Otel, error) {
+	// Validate Grafana environment variables
+	// Do not add to the config, they're not needed in the code
+	_, err := getEnv("GRAFANA_CLOUD_OTLP_ENDPOINT")
+	if err != nil {
+		return Otel{}, err
+	}
+	_, err = getEnv("GRAFANA_CLOUD_INSTANCE_ID")
+	if err != nil {
+		return Otel{}, err
+	}
+	_, err = getEnv("GRAFANA_CLOUD_API_KEY")
+	if err != nil {
+		return Otel{}, err
+	}
+
 	tracesEndpoint, err := getEnv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 	if err != nil {
 		return Otel{}, err
