@@ -52,7 +52,7 @@ services:
         networks:
             - app_network
     valkey:
-        image: valkey/valkey:latest
+        image: valkey/valkey:9.1-alpine3.23
         restart: unless-stopped
         ports:
             - "${VALKEY_PORT}:6379"
@@ -67,17 +67,20 @@ services:
             start_period: 15s
         networks:
             - app_network
-    jaeger:
-        image: cr.jaegertracing.io/jaegertracing/jaeger:latest
-        container_name: jaeger
-        restart: unless-stopped
-        environment:
-            COLLECTOR_OTLP_ENABLED: "true"
+    otel-collector:
+        image: otel/opentelemetry-collector-contrib:0.149.0
+        command: ["--config=/etc/otel-collector-config.yml"]
+        container_name: otel-collector
         ports:
-            - "16686:16686"
-            - "4317:4317"
-            - "4318:4318"
-            - "5778:5778"
+            - "4317:4317" # OTLP gRPC receiver
+            - "13133:13133" # health_check extension
+            - "55679:55679" # ZPages extension; see more here: https://opentelemetry.io/docs/collector/install/docker/#docker-compose
+        environment:
+            GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT}
+            GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID}
+            GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY}
+        volumes:
+            - ./otel-collector-config.yaml:/etc/otel-collector-config.yml
         networks:
             - app_network
 

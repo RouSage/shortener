@@ -1,0 +1,43 @@
+receivers:
+    otlp:
+        protocols:
+            grpc:
+                endpoint: 0.0.0.0:4317
+
+processors:
+    memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 15
+
+exporters:
+    otlphttp/grafana_cloud:
+        endpoint: ${env:GRAFANA_CLOUD_OTLP_ENDPOINT}
+        auth:
+            authenticator: basicauth/grafana_cloud
+
+extensions:
+    health_check:
+        endpoint: 0.0.0.0:13133
+    zpages:
+        endpoint: 0.0.0.0:55679
+    basicauth/grafana_cloud:
+        client_auth:
+            username: ${env:GRAFANA_CLOUD_INSTANCE_ID}
+            password: ${env:GRAFANA_CLOUD_API_KEY}
+
+service:
+    extensions: [health_check, zpages, basicauth/grafana_cloud]
+    pipelines:
+        traces:
+            receivers: [otlp]
+            processors: [memory_limiter]
+            exporters: [otlphttp/grafana_cloud]
+        metrics:
+            receivers: [otlp]
+            processors: [memory_limiter]
+            exporters: [otlphttp/grafana_cloud]
+        logs:
+            receivers: [otlp]
+            processors: [memory_limiter]
+            exporters: [otlphttp/grafana_cloud]
