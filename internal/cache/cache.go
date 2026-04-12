@@ -11,7 +11,9 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("github.com/rousage/shortener/internal/cache")
+const name = "github.com/rousage/shortener/internal/cache"
+
+var tracer = otel.Tracer(name)
 
 func Connect(logger *slog.Logger, cfg config.Cache) *glide.Client {
 	clientCfg := cacheConfig.NewClientConfiguration().WithAddress(&cacheConfig.NodeAddress{
@@ -21,7 +23,7 @@ func Connect(logger *slog.Logger, cfg config.Cache) *glide.Client {
 
 	client, err := glide.NewClient(clientCfg)
 	if err != nil {
-		logger.Error("faild to connect to cache", "error", err)
+		logger.Error("failed to connect to cache", "error", err)
 		os.Exit(1)
 	}
 

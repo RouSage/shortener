@@ -18,7 +18,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("github.com/rousage/shortener/internal/auth")
+const name = "github.com/rousage/shortener/internal/auth"
+
+var tracer = otel.Tracer(name)
 
 type Middleware struct {
 	cfg config.Auth

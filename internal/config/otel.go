@@ -7,8 +7,8 @@ import (
 )
 
 type Otel struct {
-	TracesEndpoint string
-	SamplingRatio  float64
+	Endpoint      string
+	SamplingRatio float64
 }
 
 func loadOtelConfig(logger *slog.Logger) (Otel, error) {
@@ -27,7 +27,8 @@ func loadOtelConfig(logger *slog.Logger) (Otel, error) {
 		return Otel{}, err
 	}
 
-	tracesEndpoint, err := getEnv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	// This expects a OpenTelemetry Collector gRPC endpoint
+	endpoint, err := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if err != nil {
 		return Otel{}, err
 	}
@@ -46,7 +47,7 @@ func loadOtelConfig(logger *slog.Logger) (Otel, error) {
 	}
 
 	return Otel{
-		TracesEndpoint: tracesEndpoint,
-		SamplingRatio:  samplingRatio,
+		Endpoint:      endpoint,
+		SamplingRatio: samplingRatio,
 	}, nil
 }
