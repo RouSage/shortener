@@ -13,7 +13,7 @@ import (
 // A fan out approach to logs
 // - Log with a default slog in the local environment for easier development/debugging
 // - Use otelslog bridge to export logs as OTel signal to the Collector and further down the pipe (Grafana)
-func newLogger(env string) *slog.Logger {
+func newLogger(env config.Environment) *slog.Logger {
 	otelHandler := otelslog.NewHandler(name)
 	if env == config.EnvLocal {
 		stdoutHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{

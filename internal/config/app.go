@@ -8,17 +8,19 @@ import (
 )
 
 type App struct {
-	Env            string
+	Env            Environment
 	ShortUrlLength int
 }
 
+type Environment = string
+
 const (
-	EnvLocal       = "local"
-	EnvDevelopment = "development"
-	EnvProduction  = "production"
+	EnvLocal       Environment = "local"
+	EnvDevelopment Environment = "development"
+	EnvProduction  Environment = "production"
 )
 
-var allowedEnvs = []string{EnvLocal, EnvDevelopment, EnvProduction}
+var allowedEnvs = []Environment{EnvLocal, EnvDevelopment, EnvProduction}
 
 func loadAppConfig(logger *slog.Logger) (App, error) {
 	env, err := getEnv("APP_ENV")
@@ -38,7 +40,7 @@ func loadAppConfig(logger *slog.Logger) (App, error) {
 	}
 
 	return App{
-		Env:            env,
+		Env:            Environment(env),
 		ShortUrlLength: shortUrlLength,
 	}, nil
 }
