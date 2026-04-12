@@ -136,18 +136,18 @@ func (s *Server) deleteURLHandler(c *echo.Context) error {
 		span.SetStatus(codes.Error, "failed to delete url")
 		span.RecordError(err)
 
-		c.Logger().Error("failed to delete short url", "error", err, slog.String("code", params.Code))
+		c.Logger().ErrorContext(ctx, "failed to delete short url", "error", err, slog.String("code", params.Code))
 		return echo.ErrInternalServerError
 	}
 	if rowsAffected == 0 {
 		span.AddEvent("short url not found", trace.WithAttributes(attribute.String("code", params.Code)))
-		c.Logger().Warn("short url not found", slog.String("code", params.Code))
+		c.Logger().WarnContext(ctx, "short url not found", slog.String("code", params.Code))
 		return echo.ErrNotFound
 	}
 
 	if removedKeys, err := s.cache.DeleteLongURL(ctx, params.Code); err != nil {
 		span.AddEvent("failed to delete long url from cache", trace.WithAttributes(attribute.String("code", params.Code), attribute.Int64("removedKeys", removedKeys)))
-		c.Logger().Warn("failed to delete long url from cache", "error", err, slog.String("code", params.Code))
+		c.Logger().WarnContext(ctx, "failed to delete long url from cache", "error", err, slog.String("code", params.Code))
 	}
 
 	return c.NoContent(http.StatusNoContent)
@@ -196,13 +196,13 @@ func (s *Server) deleteUserURLsHandler(c *echo.Context) error {
 		span.SetStatus(codes.Error, "failed to delete user urls")
 		span.RecordError(err)
 
-		c.Logger().Error("failed to delete user urls", "error", err, slog.String("userId", params.UserID))
+		c.Logger().ErrorContext(ctx, "failed to delete user urls", "error", err, slog.String("userId", params.UserID))
 		return echo.ErrInternalServerError
 	}
 
 	if removedKeys, err := s.cache.DeleteLongURLs(ctx, deletedIDs); err != nil {
 		span.AddEvent("failed to delete user urls from cache", trace.WithAttributes(attribute.String("userId", params.UserID), attribute.Int64("removedKeys", removedKeys), attribute.StringSlice("deletedIDs", deletedIDs)))
-		c.Logger().Warn("failed to delete user urls from cache", "error", err, slog.String("userId", params.UserID), slog.Int64("removedKeys", removedKeys), slog.Any("deletedIDs", deletedIDs))
+		c.Logger().WarnContext(ctx, "failed to delete user urls from cache", "error", err, slog.String("userId", params.UserID), slog.Int64("removedKeys", removedKeys), slog.Any("deletedIDs", deletedIDs))
 	}
 
 	return c.JSON(http.StatusOK, &DeleteUserURLsResponse{
@@ -260,7 +260,7 @@ func (s *Server) blockUserHandler(c *echo.Context) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to start transaction")
 		span.RecordError(err)
-		c.Logger().Error("failed to start transaction", "error", err)
+		c.Logger().ErrorContext(ctx, "failed to start transaction", "error", err)
 
 		return echo.ErrInternalServerError
 	}
@@ -280,12 +280,12 @@ func (s *Server) blockUserHandler(c *echo.Context) error {
 		if errors.As(err, &apiErr) {
 			span.RecordError(apiErr.Unwrap())
 
-			c.Logger().Error("failed to block the user in auth0", "error", apiErr.Unwrap(), slog.String("userId", params.UserID))
+			c.Logger().ErrorContext(ctx, "failed to block the user in auth0", "error", apiErr.Unwrap(), slog.String("userId", params.UserID))
 			return echo.NewHTTPError(apiErr.StatusCode, "")
 		}
 
 		span.RecordError(err)
-		c.Logger().Error("failed to block the user in auth0", "error", err, slog.String("userId", params.UserID))
+		c.Logger().ErrorContext(ctx, "failed to block the user in auth0", "error", err, slog.String("userId", params.UserID))
 
 		return echo.ErrInternalServerError
 	}
@@ -295,7 +295,7 @@ func (s *Server) blockUserHandler(c *echo.Context) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to block the user in db")
 		span.RecordError(err)
-		c.Logger().Error("failed to block the user in db", "error", err, slog.String("userId", params.UserID))
+		c.Logger().ErrorContext(ctx, "failed to block the user in db", "error", err, slog.String("userId", params.UserID))
 
 		_ = s.authManagement.UnblockUser(ctx, params.UserID)
 
@@ -305,7 +305,7 @@ func (s *Server) blockUserHandler(c *echo.Context) error {
 	if err := tx.Commit(ctx); err != nil {
 		span.SetStatus(codes.Error, "failed to commit transaction")
 		span.RecordError(err)
-		c.Logger().Error("failed to commit transaction", "error", err)
+		c.Logger().ErrorContext(ctx, "failed to commit transaction", "error", err)
 
 		return echo.ErrInternalServerError
 	}
@@ -349,7 +349,7 @@ func (s *Server) unblockUserHandler(c *echo.Context) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "failed to start transaction")
 		span.RecordError(err)
-		c.Logger().Error("failed to start transaction", "error", err)
+		c.Logger().ErrorContext(ctx, "failed to start transaction", "error", err)
 
 		return echo.ErrInternalServerError
 	}
@@ -369,11 +369,11 @@ func (s *Server) unblockUserHandler(c *echo.Context) error {
 		span.RecordError(err)
 
 		if s.rep.IsNotFoundError(err) {
-			c.Logger().Error("user block not found", "error", err, slog.String("userId", params.UserID))
+			c.Logger().ErrorContext(ctx, "user block not found", "error", err, slog.String("userId", params.UserID))
 			return echo.ErrNotFound
 		}
 
-		c.Logger().Error("failed to unblock the user in db", "error", err, slog.String("userId", params.UserID))
+		c.Logger().ErrorContext(ctx, "failed to unblock the user in db", "error", err, slog.String("userId", params.UserID))
 		return echo.ErrInternalServerError
 	}
 
@@ -385,12 +385,12 @@ func (s *Server) unblockUserHandler(c *echo.Context) error {
 		if errors.As(err, &apiErr) {
 			span.RecordError(apiErr.Unwrap())
 
-			c.Logger().Error("failed to unblock the user in auth", "error", apiErr.Unwrap(), slog.String("userId", params.UserID))
+			c.Logger().ErrorContext(ctx, "failed to unblock the user in auth", "error", apiErr.Unwrap(), slog.String("userId", params.UserID))
 			return echo.NewHTTPError(apiErr.StatusCode, "")
 		}
 
 		span.RecordError(err)
-		c.Logger().Error("failed to unblock the user in auth", "error", err, slog.String("userId", params.UserID))
+		c.Logger().ErrorContext(ctx, "failed to unblock the user in auth", "error", err, slog.String("userId", params.UserID))
 
 		return echo.ErrInternalServerError
 	}
@@ -398,7 +398,7 @@ func (s *Server) unblockUserHandler(c *echo.Context) error {
 	if err := tx.Commit(ctx); err != nil {
 		span.SetStatus(codes.Error, "failed to commit transaction")
 		span.RecordError(err)
-		c.Logger().Error("failed to commit transaction", "error", err)
+		c.Logger().ErrorContext(ctx, "failed to commit transaction", "error", err)
 
 		return echo.ErrInternalServerError
 	}

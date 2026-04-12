@@ -33,9 +33,12 @@ func NewMiddleware(cfg config.Auth) *Middleware {
 // Authenticate is a middleware that will check the validity of the JWT if it is present
 func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
+		ctx, span := tracer.Start(c.Request().Context(), "auth.Authenticate")
+		defer span.End()
+
 		issuerURL, err := url.Parse(fmt.Sprintf("https://%s/", m.cfg.Auth0Domain))
 		if err != nil {
-			c.Logger().Error("failed to parse the issuer URL", "error", err)
+			c.Logger().ErrorContext(ctx, "failed to parse the issuer URL", "error", err)
 			os.Exit(1)
 		}
 
@@ -54,11 +57,9 @@ func (m *Middleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 			validator.WithAllowedClockSkew(time.Minute),
 		)
 		if err != nil {
-			c.Logger().Error("faile to set up the jwt validator", "error", err)
+			c.Logger().ErrorContext(ctx, "faile to set up the jwt validator", "error", err)
 			os.Exit(1)
 		}
-		ctx, span := tracer.Start(c.Request().Context(), "auth.Authenticate")
-		defer span.End()
 
 		token, err := jwtmiddleware.AuthHeaderTokenExtractor(c.Request())
 		if err != nil {
