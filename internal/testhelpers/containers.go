@@ -50,7 +50,7 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		return nil, err
 	}
 
-	cfg.Port = dbPort.Int()
+	cfg.Port = int(dbPort.Num())
 
 	return &PostgresContainer{
 		PostgresContainer: dbContainer,
@@ -86,7 +86,7 @@ func CreateValkeyContainer(ctx context.Context) (*ValkeyContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.Port = port.Int()
+	cfg.Port = int(port.Num())
 
 	return &ValkeyContainer{
 		ValkeyContainer: cacheContainer,
