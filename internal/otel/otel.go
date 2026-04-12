@@ -21,6 +21,13 @@ import (
 var ServiceName = semconv.ServiceNameKey.String("shortener")
 
 func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (func(context.Context) error, error) {
+	if !cfg.Enabled {
+		logger.WarnContext(ctx, "OpenTelemetry is disabled from the config, skipping initialization")
+		return func(ctx context.Context) error {
+			return nil
+		}, nil
+	}
+
 	var shutdownFuncs []func(context.Context) error
 	var err error
 
@@ -54,7 +61,7 @@ func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (fu
 		resource.WithAttributes(ServiceName),
 	)
 	if errors.Is(err, resource.ErrPartialResource) || errors.Is(err, resource.ErrSchemaURLConflict) {
-		logger.Warn("resource error", "error", err)
+		logger.WarnContext(ctx, "resource error", "error", err)
 	} else if err != nil {
 		handleErr(err)
 		return shutdown, err
