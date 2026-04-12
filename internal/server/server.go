@@ -14,16 +14,12 @@ import (
 	"github.com/rousage/shortener/internal/config"
 	"github.com/rousage/shortener/internal/database"
 	"github.com/rousage/shortener/internal/repository"
-	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 )
 
 const name = "github.com/rousage/shortener/internal/server"
 
-var (
-	tracer = otel.Tracer(name)
-	logger = otelslog.NewLogger(name)
-)
+var tracer = otel.Tracer(name)
 
 // AuthManager defines the interface for user management operations with Auth0
 type AuthManager interface {
@@ -40,6 +36,7 @@ type Server struct {
 }
 
 func New(cfg *config.Config) *http.Server {
+	logger := newLogger(cfg.App.Env)
 	db := database.Connect(logger, cfg.Database)
 	cacheClient := cache.Connect(logger, cfg.Cache)
 
