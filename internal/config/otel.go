@@ -1,35 +1,55 @@
 package config
 
 import (
+	"errors"
 	"strconv"
 
 	"log/slog"
 )
 
 type Otel struct {
-	TracesEndpoint string
-	SamplingRatio  float64
+	Enabled       bool
+	Endpoint      string
+	SamplingRatio float64
 }
 
 func loadOtelConfig(logger *slog.Logger) (Otel, error) {
-	// Validate Grafana environment variables
-	// Do not add to the config, they're not needed in the code
-	_, err := getEnv("GRAFANA_CLOUD_OTLP_ENDPOINT")
-	if err != nil {
-		return Otel{}, err
-	}
-	_, err = getEnv("GRAFANA_CLOUD_INSTANCE_ID")
-	if err != nil {
-		return Otel{}, err
-	}
-	_, err = getEnv("GRAFANA_CLOUD_API_KEY")
+	enabled, err := getBoolEnv("OTEL_ENABLED")
 	if err != nil {
 		return Otel{}, err
 	}
 
-	tracesEndpoint, err := getEnv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-	if err != nil {
-		return Otel{}, err
+	// Validate Grafana environment variables, they're required if OpenTelemetry is enabled
+	// Do not add to the config, they're not needed in the code
+	grafanaEndpoint := getOptionalEnv("GRAFANA_CLOUD_OTLP_ENDPOINT")
+	if grafanaEndpoint == "" {
+		logger.Warn("GRAFANA_CLOUD_OTLP_ENDPOINT is not specified")
+		if enabled {
+			return Otel{}, errors.New("GRAFANA_CLOUD_OTLP_ENDPOINT is required")
+		}
+
+	}
+	grafanaInstanceID := getOptionalEnv("GRAFANA_CLOUD_INSTANCE_ID")
+	if grafanaInstanceID == "" {
+		logger.Warn("GRAFANA_CLOUD_INSTANCE_ID is not specified")
+		if enabled {
+			return Otel{}, errors.New("GRAFANA_CLOUD_INSTANCE_ID is required")
+		}
+	}
+	grafanaAPIKey := getOptionalEnv("GRAFANA_CLOUD_API_KEY")
+	if grafanaAPIKey == "" {
+		logger.Warn("GRAFANA_CLOUD_API_KEY is not specified")
+		if enabled {
+			return Otel{}, errors.New("GRAFANA_CLOUD_API_KEY is required")
+		}
+	}
+	// This expects a OpenTelemetry Collector gRPC endpoint
+	endpoint := getOptionalEnv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		logger.Warn("OTEL_EXPORTER_OTLP_ENDPOINT is not specified")
+		if enabled {
+			return Otel{}, err
+		}
 	}
 
 	// Get sampling ratio from environment, default to 1.0 (100%) if not set
@@ -46,7 +66,8 @@ func loadOtelConfig(logger *slog.Logger) (Otel, error) {
 	}
 
 	return Otel{
-		TracesEndpoint: tracesEndpoint,
-		SamplingRatio:  samplingRatio,
+		Enabled:       enabled,
+		Endpoint:      endpoint,
+		SamplingRatio: samplingRatio,
 	}, nil
 }

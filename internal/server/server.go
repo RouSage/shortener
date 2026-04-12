@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/auth0/go-auth0/v2/management"
@@ -18,7 +17,9 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("github.com/rousage/shortener/internal/server")
+const name = "github.com/rousage/shortener/internal/server"
+
+var tracer = otel.Tracer(name)
 
 // AuthManager defines the interface for user management operations with Auth0
 type AuthManager interface {
@@ -35,12 +36,7 @@ type Server struct {
 }
 
 func New(cfg *config.Config) *http.Server {
-	logLevel := slog.LevelDebug
-	if cfg.App.Env == config.EnvProduction {
-		logLevel = slog.LevelInfo
-	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
-
+	logger := newLogger(cfg.App.Env)
 	db := database.Connect(logger, cfg.Database)
 	cacheClient := cache.Connect(logger, cfg.Cache)
 

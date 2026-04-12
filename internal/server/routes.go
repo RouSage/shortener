@@ -1,9 +1,9 @@
 package server
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	echootel "github.com/labstack/echo-opentelemetry"
@@ -59,34 +59,34 @@ func (s *Server) RegisterRoutes(logger *slog.Logger) http.Handler {
 		LogContentLength: true,
 		LogResponseSize:  true,
 		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
+			ctx := c.Request().Context()
+
 			attrs := []slog.Attr{
-				slog.Int64("latency", v.Latency.Milliseconds()),
-				slog.String("protocol", v.Protocol),
-				slog.String("remote_ip", v.RemoteIP),
-				slog.String("host", v.Host),
-				slog.String("method", v.Method),
-				slog.String("uri", v.URI),
-				slog.String("route", v.RoutePath),
+				slog.String("http.method", v.Method),
+				slog.Int("http.status_code", v.Status),
+				slog.String("http.route", v.RoutePath),
+				slog.String("http.content_length", v.ContentLength),
+				slog.Int64("http.response_size", v.ResponseSize),
+				slog.String("http.referer", v.Referer),
+				slog.String("url.path", v.URI),
+				slog.String("url.scheme", v.Protocol),
 				slog.String("request_id", v.RequestID),
-				slog.String("referer", v.Referer),
-				slog.String("user_agent", v.UserAgent),
-				slog.Int("status", v.Status),
-				slog.String("content_length", v.ContentLength),
-				slog.Int64("response_size", v.ResponseSize),
+				slog.String("client.address", v.RemoteIP),
+				slog.String("user_agent.original", v.UserAgent),
+				slog.String("server.address", v.Host),
+				slog.Float64("event.duration_ms", float64(v.Latency.Nanoseconds())/1e6),
 			}
 			if v.Error != nil {
-				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
-					append(attrs, slog.String("error", v.Error.Error()))...,
-				)
+				logger.LogAttrs(ctx, slog.LevelError, "REQUEST_ERROR", append(attrs, slog.String("error", v.Error.Error()))...)
 			} else {
-				logger.LogAttrs(context.Background(), slog.LevelInfo, "REQUEST", attrs...)
+				logger.LogAttrs(ctx, slog.LevelInfo, "REQUEST", attrs...)
 			}
 
 			return nil
 		},
 		Skipper: func(c *echo.Context) bool {
 			path := c.Request().URL.Path
-			return path == "/health" || path == "/health/metrics"
+			return strings.HasPrefix(path, "/health")
 		},
 	}))
 

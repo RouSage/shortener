@@ -6,9 +6,13 @@ import (
 	"log/slog"
 
 	"github.com/rousage/shortener/internal/config"
+	"go.opentelemetry.io/contrib/processors/minsev"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
@@ -17,6 +21,13 @@ import (
 var ServiceName = semconv.ServiceNameKey.String("shortener")
 
 func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (func(context.Context) error, error) {
+	if !cfg.Enabled {
+		logger.WarnContext(ctx, "OpenTelemetry is disabled from the config, skipping initialization")
+		return func(ctx context.Context) error {
+			return nil
+		}, nil
+	}
+
 	var shutdownFuncs []func(context.Context) error
 	var err error
 
@@ -50,7 +61,7 @@ func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (fu
 		resource.WithAttributes(ServiceName),
 	)
 	if errors.Is(err, resource.ErrPartialResource) || errors.Is(err, resource.ErrSchemaURLConflict) {
-		logger.Warn("resource error", "error", err)
+		logger.WarnContext(ctx, "resource error", "error", err)
 	} else if err != nil {
 		handleErr(err)
 		return shutdown, err
@@ -64,6 +75,14 @@ func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (fu
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
+	loggerProvider, err := newLoggerProvider(ctx, res, cfg)
+	if err != nil {
+		handleErr(err)
+		return shutdown, err
+	}
+	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
+	global.SetLoggerProvider(loggerProvider)
+
 	return shutdown, err
 }
 
@@ -75,7 +94,7 @@ func newPropagator() propagation.TextMapPropagator {
 }
 
 func newTracerProvider(ctx context.Context, res *resource.Resource, cfg config.Otel) (*sdktrace.TracerProvider, error) {
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(cfg.TracesEndpoint))
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(cfg.Endpoint))
 	if err != nil {
 		return nil, err
 	}
@@ -89,4 +108,17 @@ func newTracerProvider(ctx context.Context, res *resource.Resource, cfg config.O
 	)
 
 	return tracerProvider, nil
+}
+
+func newLoggerProvider(ctx context.Context, res *resource.Resource, cfg config.Otel) (*log.LoggerProvider, error) {
+	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithEndpointURL(cfg.Endpoint))
+	if err != nil {
+		return nil, err
+	}
+
+	logProcessor := minsev.NewLogProcessor(log.NewBatchProcessor(logExporter), minsev.SeverityInfo)
+
+	loggerProvider := log.NewLoggerProvider(log.WithResource(res), log.WithProcessor(logProcessor))
+
+	return loggerProvider, nil
 }

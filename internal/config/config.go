@@ -85,3 +85,17 @@ func getIntEnv(key string) (int, error) {
 
 	return intVal, nil
 }
+
+func getBoolEnv(key string) (bool, error) {
+	value, err := getEnv(key)
+	if err != nil {
+		return false, err
+	}
+
+	boolVal, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, err
+	}
+
+	return boolVal, nil
+}
