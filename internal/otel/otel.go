@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/rousage/shortener/internal/config"
+	"go.opentelemetry.io/contrib/processors/minsev"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -108,7 +109,9 @@ func newLoggerProvider(ctx context.Context, res *resource.Resource, cfg config.O
 		return nil, err
 	}
 
-	loggerProvider := log.NewLoggerProvider(log.WithResource(res), log.WithProcessor(log.NewBatchProcessor(logExporter)))
+	logProcessor := minsev.NewLogProcessor(log.NewBatchProcessor(logExporter), minsev.SeverityInfo)
+
+	loggerProvider := log.NewLoggerProvider(log.WithResource(res), log.WithProcessor(logProcessor))
 
 	return loggerProvider, nil
 }

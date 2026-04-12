@@ -40,12 +40,6 @@ type Server struct {
 }
 
 func New(cfg *config.Config) *http.Server {
-	// logLevel := slog.LevelDebug
-	// if cfg.App.Env == config.EnvProduction {
-	// 	logLevel = slog.LevelInfo
-	// }
-	// logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
-
 	db := database.Connect(logger, cfg.Database)
 	cacheClient := cache.Connect(logger, cfg.Cache)
 
