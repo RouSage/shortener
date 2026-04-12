@@ -9,13 +9,15 @@ import (
 	"go.opentelemetry.io/contrib/processors/minsev"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
 )
 
 var ServiceName = semconv.ServiceNameKey.String("shortener")
@@ -75,6 +77,14 @@ func SetupOTelSDK(ctx context.Context, logger *slog.Logger, cfg config.Otel) (fu
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
+	meterProvider, err := newMeterProvider(ctx, res, cfg)
+	if err != nil {
+		handleErr(err)
+		return shutdown, err
+	}
+	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
+	otel.SetMeterProvider(meterProvider)
+
 	loggerProvider, err := newLoggerProvider(ctx, res, cfg)
 	if err != nil {
 		handleErr(err)
@@ -100,14 +110,27 @@ func newTracerProvider(ctx context.Context, res *resource.Resource, cfg config.O
 	}
 
 	sampler := sdktrace.ParentBased(sdktrace.TraceIDRatioBased(cfg.SamplingRatio))
-
 	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sampler),
 		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sampler),
 		sdktrace.WithBatcher(traceExporter),
 	)
 
 	return tracerProvider, nil
+}
+
+func newMeterProvider(ctx context.Context, res *resource.Resource, cfg config.Otel) (*metric.MeterProvider, error) {
+	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithEndpointURL(cfg.Endpoint))
+	if err != nil {
+		return nil, err
+	}
+
+	meterProvider := metric.NewMeterProvider(
+		metric.WithResource(res),
+		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
+	)
+
+	return meterProvider, nil
 }
 
 func newLoggerProvider(ctx context.Context, res *resource.Resource, cfg config.Otel) (*log.LoggerProvider, error) {
@@ -117,8 +140,10 @@ func newLoggerProvider(ctx context.Context, res *resource.Resource, cfg config.O
 	}
 
 	logProcessor := minsev.NewLogProcessor(log.NewBatchProcessor(logExporter), minsev.SeverityInfo)
-
-	loggerProvider := log.NewLoggerProvider(log.WithResource(res), log.WithProcessor(logProcessor))
+	loggerProvider := log.NewLoggerProvider(
+		log.WithResource(res),
+		log.WithProcessor(logProcessor),
+	)
 
 	return loggerProvider, nil
 }
