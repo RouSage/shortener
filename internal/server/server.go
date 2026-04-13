@@ -44,7 +44,7 @@ func New(cfg *config.Config) *http.Server {
 		cfg:            cfg,
 		db:             db,
 		rep:            repository.New(db),
-		cache:          cache.New(cacheClient),
+		cache:          cache.New(logger, cacheClient),
 		authManagement: auth.NewManagement(logger, cfg.Auth),
 	}
 
