@@ -123,6 +123,7 @@ func (s *Server) createShortURLHandler(c *echo.Context) error {
 		if s.rep.IsDuplicateKeyError(err) {
 			span.AddEvent("Short URL collision detected, retrying", trace.WithAttributes(attribute.Int("attempt", attempt+1)))
 			c.Logger().WarnContext(ctx, "Short URL collision detected, retrying", "error", err, slog.Int("attempt", attempt+1))
+			s.collisionCounter.Add(ctx, 1)
 			continue
 		} else if s.rep.IsCheckConstraintError(err) {
 			return c.JSON(http.StatusConflict, &HTTPValidationError{
