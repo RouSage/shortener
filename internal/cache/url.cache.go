@@ -7,6 +7,7 @@ import (
 
 	"github.com/valkey-io/valkey-glide/go/v2/options"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 var (
@@ -44,6 +45,9 @@ func (c *Cache) GetLongUrl(ctx context.Context, code string) (string, error) {
 
 	if resp.Value() == "" {
 		span.AddEvent("long url not found in cache")
+		c.resolutionCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "miss")))
+	} else {
+		c.resolutionCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "hit")))
 	}
 
 	return resp.Value(), nil

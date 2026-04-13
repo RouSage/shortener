@@ -39,7 +39,7 @@ func (suite *UrlTestSuite) SetupTest() {
 	// Connect to the cache before each test
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	client := Connect(logger, suite.container.CacheConfig)
-	cache := New(client)
+	cache := New(logger, client)
 
 	suite.cache = cache
 }
