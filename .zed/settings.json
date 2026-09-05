@@ -1,0 +1,56 @@
+// Folder-specific settings
+//
+// For a full list of overridable settings, and general information on folder-specific settings,
+// see the documentation: https://zed.dev/docs/configuring-zed#settings-files
+{
+    "languages": {
+        "Go": {
+            "language_servers": ["gopls", "golangci-lint"],
+        },
+        "SQL": {
+            "formatter": {
+                "external": {
+                    "command": "sql-formatter",
+                },
+            },
+        },
+    },
+    "lsp": {
+        "gopls": {
+            "initialization_options": {
+                "hints": {
+                    "assignVariableTypes": false,
+                    "compositeLiteralFields": false,
+                    "compositeLiteralTypes": false,
+                    "functionTypeParameters": true,
+                    "parameterNames": true,
+                    "constantValues": true,
+                    "rangeVariableTypes": true,
+                },
+            },
+        },
+        "golangci-lint": {
+            "initialization_options": {
+                "command": [
+                    "golangci-lint",
+                    "run",
+                    "--output.json.path=stdout",
+                    "--issues-exit-code=1",
+                    "--show-stats=false",
+                ],
+            },
+        },
+        "json-language-server": {
+            "settings": {
+                "json": {
+                    "schemas": [
+                        {
+                            "fileMatch": ".sql-formatter.json",
+                            "url": "https://raw.githubusercontent.com/sql-formatter-org/sql-formatter/refs/heads/master/schema.json",
+                        },
+                    ],
+                },
+            },
+        },
+    },
+}

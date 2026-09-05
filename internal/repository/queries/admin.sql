@@ -1,82 +1,82 @@
 -- name: GetURLs :many
 SELECT
-  id,
-  long_url,
-  created_at,
-  is_custom,
-  user_id,
-  COUNT(*) OVER () as total_count
+    id,
+    long_url,
+    created_at,
+    is_custom,
+    user_id,
+    COUNT(*) OVER () AS total_count
 FROM
-  urls
+    urls
 WHERE
-  (
-    sqlc.narg ('is_custom')::boolean IS NULL
-    OR is_custom = sqlc.narg ('is_custom')::boolean
-  )
-  AND (
-    sqlc.narg ('user_id')::text IS NULL
-    OR user_id = sqlc.narg ('user_id')::text
-  )
+    (
+        sqlc.narg ('is_custom')::BOOLEAN IS NULL
+        OR is_custom = sqlc.narg ('is_custom')::BOOLEAN
+    )
+    AND (
+        sqlc.narg ('user_id')::TEXT IS NULL
+        OR user_id = sqlc.narg ('user_id')::TEXT
+    )
 ORDER BY
-  created_at DESC
+    created_at DESC
 LIMIT
-  sqlc.arg ('limit')
+    sqlc.arg ('limit')
 OFFSET
-  sqlc.arg ('offset');
+    sqlc.arg ('offset');
 
 -- name: DeleteURL :execrows
 DELETE FROM urls
 WHERE
-  id = sqlc.arg ('id');
+    id = sqlc.arg ('id');
 
 -- name: DeleteAllUserURLs :many
 DELETE FROM urls
 WHERE
-  user_id = sqlc.arg ('user_id')::text
+    user_id = sqlc.arg ('user_id')::TEXT
 RETURNING
-  id;
+    id;
 
 -- name: BlockUser :one
 INSERT INTO
-  user_blocks (user_id, user_email, blocked_by, reason)
+    user_blocks (user_id, user_email, blocked_by, reason)
 VALUES
-  ($1, $2, $3, $4)
+    ($1, $2, $3, $4)
 ON CONFLICT (user_id) DO UPDATE
 SET
-  user_email = EXCLUDED.user_email,
-  blocked_by = EXCLUDED.blocked_by,
-  reason = EXCLUDED.reason,
-  unblocked_by = NULL,
-  unblocked_at = NULL
+    user_email = EXCLUDED.user_email,
+    blocked_by = EXCLUDED.blocked_by,
+    reason = EXCLUDED.reason,
+    unblocked_by = NULL,
+    unblocked_at = NULL
 RETURNING
-  *;
+    *;
 
 -- name: UnblockUser :one
 UPDATE user_blocks
 SET
-  unblocked_by = sqlc.arg ('unblocked_by')::text,
-  unblocked_at = NOW()
+    unblocked_by = sqlc.arg ('unblocked_by')::TEXT,
+    unblocked_at = NOW()
 WHERE
-  user_id = sqlc.arg ('user_id')
+    user_id = sqlc.arg ('user_id')
 RETURNING
-  *;
+    *;
 
 -- name: GetUserBlocks :many
 SELECT
-  id,
-  user_id,
-  user_email,
-  blocked_by,
-  blocked_at,
-  unblocked_by,
-  unblocked_at,
-  reason,
-  COUNT(*) OVER () as total_count
+    id,
+    user_id,
+    user_email,
+    blocked_by,
+    blocked_at,
+    unblocked_by,
+    unblocked_at,
+    reason,
+    COUNT(*) OVER () AS total_count
 FROM
-  user_blocks
+    user_blocks
 ORDER BY
-  blocked_at DESC
+    blocked_at DESC
 LIMIT
-  sqlc.arg ('limit')
+    sqlc.arg ('limit')
 OFFSET
-  sqlc.arg ('offset');
+    sqlc.arg ('offset');
